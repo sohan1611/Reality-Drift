@@ -1,0 +1,11 @@
+Given the user's daily habits data:
+Study Hours: {{studyHours}}
+Screen Time: {{screenTime}}
+Sleep Hours: {{sleepHours}}
+Coding Hours: {{codingHours}}
+Mood: {{mood}}
+
+Predict their next 30 days realistically based on these current trends. 
+Provide your response in two parts:
+1. Analytical Outcome: Assess productivity, burnout risk, and growth potential. Be objective and data-driven.
+2. Narrative Story: Write a short, engaging story of their future progression over the next month if they continue this pattern.
