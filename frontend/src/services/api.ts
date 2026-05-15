@@ -1,4 +1,4 @@
-const BASE_URL = "https://reality-drift-backend-194526391508.asia-south1.run.app/api";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
 
 export async function apiFetch(endpoint: string, options: RequestInit = {}) {
   const token =

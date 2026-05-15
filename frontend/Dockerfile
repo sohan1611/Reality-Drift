@@ -17,7 +17,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Environment variable can be overridden at runtime
-ENV NEXT_PUBLIC_API_URL=https://reality-drift-backend-xxxx.run.app
+ENV NEXT_PUBLIC_API_URL=http://localhost:8080/api
 
 # Build the standalone Next.js app
 RUN npm run build

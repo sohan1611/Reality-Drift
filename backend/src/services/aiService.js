@@ -14,7 +14,10 @@ exports.generateCoaching = async (logs) => {
       }
 
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.5-flash",
+        generationConfig: { responseMimeType: "application/json" }
+      });
 
       const prompt = `
 You are an elite productivity AI coach. Analyze the user's habits based on these logs: ${JSON.stringify(logs)}.
@@ -32,16 +35,17 @@ Return a valid JSON object with EXACTLY this structure:
     "specific suggestion 3"
   ]
 }
-Return ONLY JSON. Do not include markdown backticks like \`\`\`json.
       `;
 
       const result = await model.generateContent(prompt);
       let text = result.response.text().trim();
-
-      if (text.startsWith("\`\`\`json")) text = text.replace(/\`\`\`json/g, "").replace(/\`\`\`/g, "").trim();
-      else if (text.startsWith("\`\`\`")) text = text.replace(/\`\`\`/g, "").trim();
-
-      return JSON.parse(text);
+      try {
+        return JSON.parse(text);
+      } catch (parseErr) {
+        console.error("Failed to parse JSON coaching:", text);
+        const cleaned = text.replace(/^```json/i, "").replace(/^```/i, "").replace(/```$/i, "").trim();
+        return JSON.parse(cleaned);
+      }
     } catch (error) {
       attempt++;
       if (attempt >= 2) {
@@ -71,7 +75,10 @@ exports.generateSimulation = async (logs) => {
       }
 
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.5-flash",
+        generationConfig: { responseMimeType: "application/json" }
+      });
 
       const prompt = `
 You are an advanced AI life simulator calculating future scenarios. Analyze the user's habits: ${JSON.stringify(logs)}.
@@ -83,16 +90,17 @@ Return a valid JSON object with EXACTLY this structure:
   "worstCase": "What happens if their worst habits compound over the next 30 days? (2 sentences max)",
   "currentPath": "The most likely 30-day outcome if they change absolutely nothing. (2 sentences max)"
 }
-Return ONLY JSON. Do not include markdown backticks like \`\`\`json.
       `;
 
       const result = await model.generateContent(prompt);
       let text = result.response.text().trim();
-
-      if (text.startsWith("\`\`\`json")) text = text.replace(/\`\`\`json/g, "").replace(/\`\`\`/g, "").trim();
-      else if (text.startsWith("\`\`\`")) text = text.replace(/\`\`\`/g, "").trim();
-
-      return JSON.parse(text);
+      try {
+        return JSON.parse(text);
+      } catch (parseErr) {
+        console.error("Failed to parse JSON simulation:", text);
+        const cleaned = text.replace(/^```json/i, "").replace(/^```/i, "").replace(/```$/i, "").trim();
+        return JSON.parse(cleaned);
+      }
     } catch (error) {
       attempt++;
       if (attempt >= 2) {

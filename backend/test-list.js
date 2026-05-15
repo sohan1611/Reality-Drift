@@ -9,7 +9,10 @@ async function list() {
     const data = await response.json();
     if (data.models) {
       console.log("AVAILABLE MODELS:");
-      data.models.forEach(m => console.log(m.name, m.supportedGenerationMethods));
+      data.models
+        .filter(m => m.name.includes("gemini") && m.supportedGenerationMethods?.includes("generateContent"))
+        .slice(0, 20)
+        .forEach(m => console.log(m.name));
     } else {
       console.log("ERROR:", data);
     }

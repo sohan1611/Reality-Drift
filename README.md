@@ -4,15 +4,13 @@ Welcome to Reality Drift. This application tracks your daily habits, analyzes yo
 
 ## 🏗️ Architecture
 - **Frontend**: Next.js App Router, Tailwind CSS, Recharts (Glassmorphism & Dark Theme)
-- **Backend**: Node.js, Express, Prisma ORM
-- **Database**: PostgreSQL
-- **AI**: OpenAI / Gemini integration for narrative simulations
-- **Infra**: Dockerized for Google Cloud Run deployment
+- **Backend**: Node.js, Express, Prisma ORM (deployed as Vercel Serverless Functions)
+- **Database**: SQLite (local) / PostgreSQL (production)
+- **AI**: Gemini integration for narrative simulations
 
 ## 🚀 Getting Started
 
 ### 1. Database Setup
-Ensure you have a PostgreSQL instance running.
 ```bash
 cd backend
 npm install
@@ -36,11 +34,17 @@ npm run dev
 ```
 The application will run on `http://localhost:3000`.
 
-## ☁️ Deployment (Cloud Run)
-1. Navigate to the `infra/` folder.
-2. Build your Docker image using the `Dockerfile`.
-3. Apply the `cloudrun.yaml` configuration to deploy the backend.
-4. Deploy the frontend to Vercel or Cloud Run as well.
+## ☁️ Deployment (Vercel)
+
+### Backend
+1. Create a new Vercel project and set the **Root Directory** to `backend`.
+2. Add these environment variables: `DATABASE_URL`, `GEMINI_API_KEY`, `JWT_SECRET`.
+3. Deploy. Copy the deployment URL.
+
+### Frontend
+1. Create a new Vercel project and set the **Root Directory** to `frontend`.
+2. Add this environment variable: `NEXT_PUBLIC_API_URL=https://<your-backend>.vercel.app/api`.
+3. Deploy.
 
 ## 🧠 AI Module
 Prompts for the simulation engine and daily coaching are located in the `ai/prompts/` directory. These are used by the backend service to generate realistic and narrative outputs based on user data.
