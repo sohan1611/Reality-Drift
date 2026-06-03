@@ -26,14 +26,15 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes (disabled for now to debug startup issue)
+// API routes
 app.use('/api', apiRoutes);
 
-// Start server
-const PORT = process.env.PORT || 8080;
-
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Start server (Only if not in Vercel production to avoid port collision)
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 8080;
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
 
 module.exports = app;

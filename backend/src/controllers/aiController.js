@@ -26,7 +26,10 @@ exports.runSimulation = async (req, res) => {
 
     const simulationResult = await aiService.generateSimulation(logs);
     
-    simCache.set(userId, { timestamp: Date.now(), data: simulationResult });
+    // Only cache if it's a successful generated result (not a fallback)
+    if (!simulationResult.bestCase?.includes('Unable to simulate')) {
+      simCache.set(userId, { timestamp: Date.now(), data: simulationResult });
+    }
 
     res.status(200).json({ success: true, data: simulationResult });
   } catch (error) {
@@ -73,7 +76,9 @@ exports.generateCoach = async (req, res) => {
 
     const advice = await aiService.generateCoaching(logs);
     
-    coachCache.set(userId, { timestamp: Date.now(), data: advice });
+    if (!advice.summary?.includes('AI systems are currently analyzing')) {
+      coachCache.set(userId, { timestamp: Date.now(), data: advice });
+    }
 
     res.status(200).json({ success: true, data: advice });
   } catch (error) {
