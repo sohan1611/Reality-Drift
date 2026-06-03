@@ -2,7 +2,7 @@ import { HelpCircle, FileText, Zap, Shield } from "lucide-react";
 
 export default function Help() {
   const faqs = [
-    { q: "How does the Neural Sync work?", a: "By submitting your daily logs, our AI engine processes the variables and maps your trajectory over 30 days." },
+    { q: "How does the tracking work?", a: "By submitting your daily logs, our system processes the variables and maps your trajectory over 30 days." },
     { q: "Why is my Burnout Risk high?", a: "The system detects when your active hours vastly exceed recovery (sleep/downtime) across a 7-day period." },
     { q: "Can I connect external datasets?", a: "External API integrations (e.g., GitHub, WakaTime) are planned for Reality Drift v2.0." },
   ];
@@ -11,7 +11,7 @@ export default function Help() {
     <div className="space-y-8 max-w-5xl mx-auto pb-12">
       <div className="text-center space-y-4">
         <h2 className="text-4xl font-bold tracking-tight glow-text">Command Center Support</h2>
-        <p className="text-gray-400 text-lg">Access documentation and neural sync troubleshooting.</p>
+        <p className="text-gray-400 text-lg">Access documentation and platform troubleshooting.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

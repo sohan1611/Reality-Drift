@@ -32,7 +32,7 @@ export default function About() {
         <div className="glass-panel p-6 rounded-2xl glow-border text-center">
           <Database className="w-10 h-10 text-accent mx-auto mb-4" />
           <h4 className="text-xl font-bold mb-2">Data Integrity</h4>
-          <p className="text-sm text-gray-400">Your neural data remains strictly encrypted and analyzed only with your consent.</p>
+          <p className="text-sm text-gray-400">Your personal data remains strictly encrypted and analyzed only with your consent.</p>
         </div>
       </div>
 

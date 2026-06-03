@@ -68,7 +68,7 @@ export default function Analytics() {
     <div className="space-y-6 pb-12">
       <div>
         <h2 className="text-3xl font-bold tracking-tight glow-text">Deep Analytics</h2>
-        <p className="text-gray-400 mt-1">Detailed breakdown of your neural synchronization across all metrics.</p>
+        <p className="text-gray-400 mt-1">Detailed breakdown of your performance across all metrics.</p>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 h-auto lg:h-[400px] mt-8">

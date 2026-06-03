@@ -6,7 +6,7 @@ export default function Messages() {
       <div className="flex-1 glass-panel rounded-2xl glow-border flex items-center justify-center">
         <div className="text-center">
           <h3 className="text-xl font-bold text-gray-300">No active transmissions</h3>
-          <p className="text-gray-500 mt-2">Connect with other pilots to begin neural syncing.</p>
+          <p className="text-gray-500 mt-2">Connect with others to start collaborating.</p>
         </div>
       </div>
     </div>

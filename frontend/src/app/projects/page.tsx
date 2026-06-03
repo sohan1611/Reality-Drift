@@ -96,7 +96,7 @@ export default function Projects() {
     try {
       const data = await createProject({ title, description, progress: 0 });
       if (data.success) {
-        toast.success("Project initialized!");
+        toast.success("Project created!");
         setShowForm(false);
         setTitle("");
         setDescription("");
@@ -155,7 +155,7 @@ export default function Projects() {
       {/* Create Form */}
       {showForm && (
         <div className="glass-panel p-6 rounded-2xl glow-border animate-in fade-in slide-in-from-top-4">
-          <h3 className="text-xl font-bold mb-4">Initialize New Project</h3>
+          <h3 className="text-xl font-bold mb-4">Create New Project</h3>
           <form onSubmit={handleCreate} className="space-y-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">

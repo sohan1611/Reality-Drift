@@ -142,7 +142,7 @@ export default function Dashboard() {
         {/* Pattern Recognition (takes 2 columns) */}
         <div className="lg:col-span-2 glass-panel p-6 rounded-xl premium-border flex flex-col h-[400px]">
           <h3 className="text-sm font-semibold tracking-wide text-white/70 uppercase mb-5 flex items-center gap-2">
-            <BrainCircuit className="w-4 h-4 text-indigo-400" /> System Patterns
+            <BrainCircuit className="w-4 h-4 text-indigo-400" /> Patterns
           </h3>
           <div className="space-y-3 flex-1 overflow-y-auto scrollbar-hide pr-2">
             {patterns.length > 0 ? patterns.map((p, i) => (
@@ -163,7 +163,7 @@ export default function Dashboard() {
         <div className="lg:col-span-3 glass-panel rounded-xl premium-border flex flex-col h-[400px]">
           <div className="p-6 border-b border-white/[0.04] flex justify-between items-center bg-white/[0.01]">
             <h3 className="text-sm font-semibold tracking-wide text-white/70 uppercase flex items-center gap-2">
-              <Lightbulb className="w-4 h-4 text-blue-400" /> AI Executive Coach
+              <Lightbulb className="w-4 h-4 text-blue-400" /> Your Coach
             </h3>
             <button 
               onClick={handleGenerateInsights}
@@ -177,7 +177,7 @@ export default function Dashboard() {
                   <div className="w-3.5 h-3.5 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
                   Analyzing
                 </>
-              ) : 'Generate Briefing'}
+              ) : 'View Insights'}
             </button>
           </div>
 
@@ -226,7 +226,7 @@ export default function Dashboard() {
                 <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
                   <Lightbulb className="w-5 h-5 text-white/20" />
                 </div>
-                <p className="text-sm font-medium">Request a briefing to analyze your data.</p>
+                <p className="text-sm font-medium">Request insights to analyze your data.</p>
               </div>
             )}
           </div>
@@ -238,7 +238,7 @@ export default function Dashboard() {
         <div className="p-6 border-b border-white/[0.04] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/[0.01]">
           <div>
             <h3 className="text-sm font-semibold tracking-wide text-white/70 uppercase flex items-center gap-2">
-              <Play className="w-4 h-4 text-violet-400" /> Future Projection Engine
+              <Play className="w-4 h-4 text-violet-400" /> 30-Day Outlook
             </h3>
             <p className="text-xs text-white/40 mt-1">30-day trajectory modeling based on compounding habits.</p>
           </div>
@@ -249,7 +249,7 @@ export default function Dashboard() {
               isSyncing ? 'bg-white/5 text-white/30 cursor-not-allowed' : 'bg-white/10 hover:bg-white/15 text-white'
             }`}
           >
-            {isSyncing ? 'Computing Vectors...' : 'Run Simulation'}
+            {isSyncing ? 'Analyzing...' : 'Generate Outlook'}
           </button>
         </div>
 
@@ -298,7 +298,7 @@ export default function Dashboard() {
           ) : (
             <div className="py-12 flex flex-col items-center justify-center text-white/30 space-y-3 border border-dashed border-white/10 rounded-lg">
               <Activity className="w-6 h-6 opacity-40" />
-              <p className="text-sm font-medium">Simulation engine idle. Run projection to visualize futures.</p>
+              <p className="text-sm font-medium">Ready for analysis. Generate outlook to visualize your path.</p>
             </div>
           )}
         </div>

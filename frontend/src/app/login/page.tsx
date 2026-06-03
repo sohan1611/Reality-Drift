@@ -33,14 +33,14 @@ export default function Login() {
       <div className="glass-panel p-10 rounded-3xl w-full max-w-md glow-border relative">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary glow-text mb-2">Reality Drift</h1>
-          <p className="text-gray-400">Initialize Neural Link (Login)</p>
+          <p className="text-gray-400">Welcome Back</p>
         </div>
 
         {error && <div className="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-2 rounded-lg mb-6 text-sm text-center">{error}</div>}
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Email Identity</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
             <input 
               type="email" 
               required
@@ -49,7 +49,7 @@ export default function Login() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Access Key (Password)</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
             <input 
               type="password" 
               required
@@ -58,12 +58,12 @@ export default function Login() {
             />
           </div>
           <button type="submit" className="w-full bg-primary hover:bg-primary/80 text-white font-medium py-3 rounded-xl transition-all shadow-[0_0_15px_rgba(138,43,226,0.5)]">
-            Establish Connection
+            Log In
           </button>
         </form>
 
         <p className="text-center text-gray-400 mt-6 text-sm">
-          No neural profile? <Link href="/signup" className="text-secondary hover:text-white transition-colors">Register here</Link>
+          Don't have an account? <Link href="/signup" className="text-secondary hover:text-white transition-colors">Create Account</Link>
         </p>
       </div>
     </div>

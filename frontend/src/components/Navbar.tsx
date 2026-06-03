@@ -15,7 +15,7 @@ export default function Navbar() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [userName, setUserName] = useState("Pilot");
+  const [userName, setUserName] = useState("User");
 
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -166,7 +166,7 @@ export default function Navbar() {
                   onClick={handleLogout}
                   className="flex items-center w-full gap-3 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors text-left"
                 >
-                  <LogOut className="w-4 h-4" /> Terminate Session
+                  <LogOut className="w-4 h-4" /> Log Out
                 </button>
               </div>
             </div>

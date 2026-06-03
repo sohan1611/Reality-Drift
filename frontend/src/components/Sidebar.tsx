@@ -18,7 +18,7 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [userName, setUserName] = useState("Pilot");
+  const [userName, setUserName] = useState("User");
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
