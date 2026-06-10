@@ -214,10 +214,110 @@ function calculateCorrelations(logs) {
   return correlations.sort((a,b) => Math.abs(parseInt(b.effect.replace(/[^0-9-]/g, ''))) - Math.abs(parseInt(a.effect.replace(/[^0-9-]/g, '')))).slice(0, 4);
 }
 
+function evaluateForecasts(simulations, allLogs) {
+  if (!simulations || simulations.length === 0) return { status: 'no_data' };
+
+  let historicalAccuracies = [];
+  let maturingSim = null;
+
+  const now = new Date();
+
+  for (const sim of simulations) {
+    if (!sim.simData || !sim.simData.currentPath || typeof sim.simData.currentPath.projectedFocus !== 'number') continue;
+    
+    const simDate = new Date(sim.createdAt);
+    const daysSince = getDayDiff(simDate, now);
+    
+    // Find logs after simDate up to simDate + 30
+    const endDate = new Date(simDate);
+    endDate.setDate(endDate.getDate() + 30);
+    
+    const targetLogs = allLogs.filter(l => {
+      const d = new Date(l.date);
+      return d > simDate && d <= endDate;
+    });
+
+    if (daysSince >= 30) {
+      if (targetLogs.length > 0) {
+        let focusSum=0, moodSum=0, sleepSum=0;
+        targetLogs.forEach(l => {
+          focusSum += (l.studyHours||0) + (l.codingHours||0);
+          moodSum += (l.mood||0);
+          sleepSum += (l.sleepHours||0);
+        });
+        const avgFocus = focusSum / targetLogs.length;
+        const avgMood = moodSum / targetLogs.length;
+        const avgSleep = sleepSum / targetLogs.length;
+        
+        const pFocus = sim.simData.currentPath.projectedFocus;
+        const pMood = sim.simData.currentPath.projectedMood;
+        const pSleep = sim.simData.currentPath.projectedSleep;
+        
+        const focusAcc = Math.max(0, (1 - Math.abs(avgFocus - pFocus) / Math.max(pFocus, avgFocus, 1)) * 100);
+        const moodAcc = Math.max(0, (1 - Math.abs(avgMood - pMood) / Math.max(pMood, avgMood, 1)) * 100);
+        const sleepAcc = Math.max(0, (1 - Math.abs(avgSleep - pSleep) / Math.max(pSleep, avgSleep, 1)) * 100);
+        
+        historicalAccuracies.push({
+          date: simDate,
+          overall: Math.round((focusAcc + moodAcc + sleepAcc) / 3),
+          focus: Math.round(focusAcc),
+          mood: Math.round(moodAcc),
+          sleep: Math.round(sleepAcc),
+          sampleSize: targetLogs.length
+        });
+      }
+    } else {
+      // It's maturing
+      if (!maturingSim || daysSince > getDayDiff(new Date(maturingSim.createdAt), now)) {
+         maturingSim = {
+           date: simDate,
+           daysCollected: daysSince,
+           targetDays: 30
+         };
+      }
+    }
+  }
+
+  historicalAccuracies.sort((a,b) => b.date - a.date);
+
+  let confidence = 'Low';
+  let overallAcc = null;
+  let latestMetrics = null;
+  
+  if (historicalAccuracies.length > 0) {
+    const sumAcc = historicalAccuracies.reduce((sum, h) => sum + h.overall, 0);
+    overallAcc = Math.round(sumAcc / historicalAccuracies.length);
+    latestMetrics = {
+      focus: historicalAccuracies[0].focus,
+      mood: historicalAccuracies[0].mood,
+      sleep: historicalAccuracies[0].sleep
+    };
+    
+    // Variance
+    const variance = historicalAccuracies.reduce((sum, h) => sum + Math.pow(h.overall - overallAcc, 2), 0) / historicalAccuracies.length;
+    
+    if (historicalAccuracies.length >= 3 && variance < 100 && overallAcc > 75) {
+      confidence = 'High';
+    } else if (historicalAccuracies.length >= 1) {
+      confidence = 'Medium';
+    }
+  }
+
+  return {
+    status: historicalAccuracies.length > 0 ? 'ready' : (maturingSim ? 'maturing' : 'no_data'),
+    overallAccuracy: overallAcc,
+    latestMetrics,
+    confidence,
+    history: historicalAccuracies,
+    maturing: maturingSim
+  };
+}
+
 module.exports = {
   calculateRealityScore,
   calculateHistoricalScore,
   calculateMomentum,
   detectDrift,
-  calculateCorrelations
+  calculateCorrelations,
+  evaluateForecasts
 };

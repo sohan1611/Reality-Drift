@@ -294,7 +294,7 @@ export default function Dashboard() {
                   <h4 className="text-xs font-semibold text-cyan-400/90 uppercase tracking-widest">Optimized</h4>
                 </div>
                 <div className="p-5 rounded-lg bg-white/[0.02] border border-white/[0.04] flex-1">
-                  <p className="text-sm text-white/60 leading-relaxed">{simulationResult.bestCase}</p>
+                  <p className="text-sm text-white/60 leading-relaxed">{typeof simulationResult.bestCase === 'string' ? simulationResult.bestCase : simulationResult.bestCase?.text}</p>
                 </div>
               </div>
 
@@ -306,7 +306,7 @@ export default function Dashboard() {
                   <h4 className="text-xs font-semibold text-indigo-400/90 uppercase tracking-widest">Current Path</h4>
                 </div>
                 <div className="p-5 rounded-lg bg-indigo-500/[0.03] border border-indigo-500/20 flex-1">
-                  <p className="text-sm text-white/80 font-medium leading-relaxed">{simulationResult.currentPath}</p>
+                  <p className="text-sm text-white/80 font-medium leading-relaxed">{typeof simulationResult.currentPath === 'string' ? simulationResult.currentPath : simulationResult.currentPath?.text}</p>
                 </div>
               </div>
 
@@ -318,7 +318,7 @@ export default function Dashboard() {
                   <h4 className="text-xs font-semibold text-amber-400/90 uppercase tracking-widest">Degraded</h4>
                 </div>
                 <div className="p-5 rounded-lg bg-white/[0.02] border border-white/[0.04] flex-1">
-                  <p className="text-sm text-white/60 leading-relaxed">{simulationResult.worstCase}</p>
+                  <p className="text-sm text-white/60 leading-relaxed">{typeof simulationResult.worstCase === 'string' ? simulationResult.worstCase : simulationResult.worstCase?.text}</p>
                 </div>
               </div>
             </div>
@@ -329,6 +329,75 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+
+        {/* Forecast Accuracy Panel */}
+        {simulationResult?.forecastEvaluation && (
+          <div className="border-t border-white/[0.04] p-6 bg-white/[0.01]">
+            <h4 className="text-xs font-semibold text-white/50 uppercase tracking-widest mb-4">Forecast Accuracy</h4>
+            {simulationResult.forecastEvaluation.status === 'ready' && simulationResult.forecastEvaluation.overallAccuracy !== null ? (
+              <div className="flex flex-col gap-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="flex items-center gap-6">
+                    <div className="flex flex-col">
+                      <span className="text-3xl font-bold text-white/90">{simulationResult.forecastEvaluation.overallAccuracy}%</span>
+                      <span className="text-xs text-white/40">Overall Accuracy</span>
+                    </div>
+                    <div className="h-8 w-px bg-white/10 hidden md:block"></div>
+                    <div className="flex gap-4">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-white/80">{simulationResult.forecastEvaluation.latestMetrics?.focus || 0}%</span>
+                        <span className="text-xs text-white/40">Focus</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-white/80">{simulationResult.forecastEvaluation.latestMetrics?.mood || 0}%</span>
+                        <span className="text-xs text-white/40">Mood</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-white/80">{simulationResult.forecastEvaluation.latestMetrics?.sleep || 0}%</span>
+                        <span className="text-xs text-white/40">Sleep</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className={`px-3 py-1.5 rounded-md text-xs font-semibold border ${simulationResult.forecastEvaluation.confidence === 'High' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : simulationResult.forecastEvaluation.confidence === 'Medium' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                      Confidence: {simulationResult.forecastEvaluation.confidence}
+                    </div>
+                    <div className="px-3 py-1.5 rounded-md text-xs font-semibold border bg-white/5 text-white/60 border-white/10">
+                      Sample: {simulationResult.forecastEvaluation.history.length} forecasts
+                    </div>
+                  </div>
+                </div>
+
+                {simulationResult.forecastEvaluation.history.length > 0 && (
+                  <div className="pt-2 border-t border-white/[0.04]">
+                    <h5 className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-3">Prediction History</h5>
+                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                      {simulationResult.forecastEvaluation.history.map((hist: any, i: number) => (
+                        <div key={i} className="flex flex-col gap-1 p-3 rounded-lg bg-white/[0.02] border border-white/[0.04] min-w-[120px]">
+                          <span className="text-xs text-white/50">{new Date(hist.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                          <div className="flex items-baseline gap-1.5 mt-1">
+                            <span className="text-lg font-bold text-white/80">{hist.overall}%</span>
+                            <span className="text-[10px] font-medium text-emerald-400/80">ACC</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : simulationResult.forecastEvaluation.status === 'maturing' && simulationResult.forecastEvaluation.maturing ? (
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-blue-500/5 border border-blue-500/10">
+                <Activity className="w-5 h-5 text-blue-400" />
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-blue-400">Data Sufficiency: Maturing</span>
+                  <span className="text-xs text-white/50">{simulationResult.forecastEvaluation.maturing.daysCollected} / 30 Days Collected</span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-white/40">Not enough data to calculate forecast accuracy.</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 7. Weekly Report */}

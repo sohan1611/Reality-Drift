@@ -26,19 +26,30 @@ exports.runSimulation = async (req, res) => {
     const hash = getLogHash(logs);
     const today = getTodayDate();
 
+    // Evaluate forecasts
+    const allSimulations = await prisma.aiInsight.findMany({
+      where: { userId: userId, simData: { not: null } },
+      orderBy: { date: 'desc' }
+    });
+    const allLogs = await prisma.dailyLog.findMany({
+      where: { userId: userId },
+      orderBy: { date: 'asc' }
+    });
+    const forecastEvaluation = statsEngine.evaluateForecasts(allSimulations, allLogs);
+
     // Check DB cache
     const existingCache = await prisma.aiInsight.findUnique({
       where: { userId_date: { userId, date: today } }
     });
 
     if (existingCache && existingCache.logHash === hash && existingCache.simData) {
-      return res.status(200).json({ success: true, data: existingCache.simData });
+      return res.status(200).json({ success: true, data: { ...existingCache.simData, forecastEvaluation } });
     }
 
     const simulationResult = await aiService.generateSimulation(logs);
     
     // Only cache if it's a successful generated result
-    if (!simulationResult.bestCase?.includes('Unable to simulate')) {
+    if (!simulationResult.bestCase?.text?.includes('Unable to simulate') && !simulationResult.bestCase?.includes('Unable to simulate')) {
       await prisma.aiInsight.upsert({
         where: { userId_date: { userId, date: today } },
         update: { logHash: hash, simData: simulationResult },
@@ -46,7 +57,7 @@ exports.runSimulation = async (req, res) => {
       });
     }
 
-    res.status(200).json({ success: true, data: simulationResult });
+    res.status(200).json({ success: true, data: { ...simulationResult, forecastEvaluation } });
   } catch (error) {
     console.error("Simulation Controller Error:", error.message);
     res.status(500).json({ success: false, error: 'Simulation failed to compute' });

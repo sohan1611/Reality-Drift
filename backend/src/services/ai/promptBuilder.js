@@ -120,18 +120,35 @@ Current Trend: ${metrics.trendDirection.toUpperCase()}
 Average Focus (Study+Code): ${parseFloat(metrics.avgStudy) + parseFloat(metrics.avgCoding)} hrs/day
 Average Negative Inputs (Screen Time): ${metrics.avgScreen} hrs/day
 Average Recovery (Sleep): ${metrics.avgSleep} hrs/day
+Average Mood (1-10): ${metrics.avgMood}
 
 Raw Log Data:
 ${JSON.stringify(logs)}
 --- END METRICS ---
 
 Project three realistic 30-day futures based strictly on compounding these specific metrics. Do not be generic. Reference their actual hour averages.
+Also provide quantitative estimates for their daily averages 30 days from now.
 
 Return a valid JSON object with EXACTLY this structure:
 {
-  "bestCase": "What happens in 30 days if they incrementally improve their specific weak points? (2 sentences max)",
-  "worstCase": "What is the specific compounding consequence if their lowest-performing days become the norm? (2 sentences max)",
-  "currentPath": "The mathematical 30-day outcome if they maintain their exact current averages. (2 sentences max)"
+  "bestCase": { 
+    "text": "What happens in 30 days if they incrementally improve their specific weak points? (2 sentences max)",
+    "projectedFocus": 8.5,
+    "projectedMood": 8.0,
+    "projectedSleep": 7.5
+  },
+  "worstCase": { 
+    "text": "What is the specific compounding consequence if their lowest-performing days become the norm? (2 sentences max)",
+    "projectedFocus": 2.0,
+    "projectedMood": 4.0,
+    "projectedSleep": 5.0
+  },
+  "currentPath": { 
+    "text": "The mathematical 30-day outcome if they maintain their exact current averages. (2 sentences max)",
+    "projectedFocus": 5.2,
+    "projectedMood": 6.5,
+    "projectedSleep": 6.2
+  }
 }
 `;
 };

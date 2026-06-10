@@ -26,16 +26,16 @@ exports.getCoachEmptyState = () => {
 
 exports.getSimulationFallback = (reason) => {
   return {
-    bestCase: `Unable to simulate at this time. (${reason})`,
-    worstCase: `Unable to simulate at this time. (${reason})`,
-    currentPath: `The AI simulation engine is temporarily offline. Try again later.`
+    bestCase: { text: `Unable to simulate at this time. (${reason})`, projectedFocus: 0, projectedMood: 0, projectedSleep: 0 },
+    worstCase: { text: `Unable to simulate at this time. (${reason})`, projectedFocus: 0, projectedMood: 0, projectedSleep: 0 },
+    currentPath: { text: `The AI simulation engine is temporarily offline. Try again later.`, projectedFocus: 0, projectedMood: 0, projectedSleep: 0 }
   };
 };
 
 exports.getSimulationEmptyState = () => {
   return {
-    bestCase: "With consistent data, your best case could involve mastering new skills and optimizing sleep.",
-    worstCase: "Without data, it's hard to predict risks. Start logging to identify negative compounding habits.",
-    currentPath: "Insufficient data to project 30 days into the future. Please log your activities."
+    bestCase: { text: "With consistent data, your best case could involve mastering new skills and optimizing sleep.", projectedFocus: 0, projectedMood: 0, projectedSleep: 0 },
+    worstCase: { text: "Without data, it's hard to predict risks. Start logging to identify negative compounding habits.", projectedFocus: 0, projectedMood: 0, projectedSleep: 0 },
+    currentPath: { text: "Insufficient data to project 30 days into the future. Please log your activities.", projectedFocus: 0, projectedMood: 0, projectedSleep: 0 }
   };
 };
