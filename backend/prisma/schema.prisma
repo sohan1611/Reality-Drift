@@ -30,6 +30,8 @@ model DailyLog {
   sleepHours  Float    @default(0)
   mood        Int      @default(5) // 1-10 slider
   codingHours Float    @default(0)
+  exerciseSessions Int @default(0)
+  exerciseMinutes  Float @default(0)
   date        DateTime @default(now())
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

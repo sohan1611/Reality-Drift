@@ -90,3 +90,24 @@ exports.detectPatterns = (logs) => {
 
   return insights;
 };
+
+exports.generateDecisionReasoning = async (simulationResult, adjustments) => {
+  try {
+    const prompt = promptBuilder.buildDecisionReasoningPrompt(simulationResult, adjustments);
+    const responseText = await aiProvider.generateWithRetry(prompt, true);
+    const parsedData = responseParser.parseJsonSafely(responseText);
+    
+    if (!parsedData || !parsedData.reasoning) {
+      throw new Error("Failed to parse valid JSON from AI response.");
+    }
+    return parsedData.reasoning;
+  } catch (error) {
+    console.error("Decision Reasoning Error:", error.message);
+    // If Gemini fails, construct a simple algorithmic explanation based on what we know
+    const logs = simulationResult.confidence.appliedLog;
+    if (logs && logs.length > 0) {
+      return `Mathematical Projection: ${logs.join(" ")}`;
+    }
+    return `Mathematical Projection: Adjusted baselines altered your trajectory.`;
+  }
+};

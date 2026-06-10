@@ -4,3 +4,4 @@ export const runSimulation = () => apiFetch('/simulate', { method: 'POST', body:
 export const getPatterns = () => apiFetch('/patterns');
 export const getCoaching = () => apiFetch('/coach', { method: 'POST', body: JSON.stringify({}) });
 export const getWeeklyReport = () => apiFetch('/report', { method: 'POST', body: JSON.stringify({}) });
+export const simulateDecision = (adjustments: any) => apiFetch('/simulate-decision', { method: 'POST', body: JSON.stringify({ adjustments }) });

@@ -190,3 +190,35 @@ exports.generateWeeklyReport = async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to generate weekly report' });
   }
 };
+
+exports.simulateDecision = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { adjustments } = req.body;
+    
+    if (!adjustments) {
+      return res.status(400).json({ success: false, error: 'Adjustments object required' });
+    }
+
+    const logs = await prisma.dailyLog.findMany({
+      where: { userId: userId },
+      orderBy: { date: 'asc' },
+      take: 60 // Take last 60 for good correlation/baseline calculation
+    });
+
+    const decisionEngine = require('../services/analytics/decisionEngine');
+    const simulationResult = decisionEngine.simulate(logs, adjustments);
+
+    // Call Gemini specifically for the Reasoning block if we have a generative service
+    // We can add a function to promptBuilder and aiService later if needed. For now, we will use Gemini if available, or fallback.
+    const aiService = require('../services/aiService');
+    const reasoning = await aiService.generateDecisionReasoning(simulationResult, adjustments);
+    
+    simulationResult.reasoning = reasoning;
+
+    res.status(200).json({ success: true, data: simulationResult });
+  } catch (error) {
+    console.error("Decision Simulation Error:", error.message);
+    res.status(500).json({ success: false, error: 'Simulation failed' });
+  }
+};

@@ -41,6 +41,7 @@ router.delete('/projects/:projectId/tasks/:taskId', auth, projectController.dele
 
 // AI Simulation & Coaching (Protected)
 router.post('/simulate', auth, aiController.runSimulation);
+router.post('/simulate-decision', auth, aiController.simulateDecision);
 router.post('/coach', auth, aiController.generateCoach);
 router.post('/report', auth, aiController.generateWeeklyReport);
 
