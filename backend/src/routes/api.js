@@ -15,6 +15,8 @@ router.post('/auth/google', authController.googleLogin);
 // User Routes (Protected)
 router.get('/user/me', auth, userController.getMe);
 router.put('/user/password', auth, userController.updatePassword);
+router.get('/user/export', auth, userController.exportData);
+router.delete('/user', auth, userController.deleteAccount);
 
 // Logging Routes (Protected)
 router.post('/log', auth, logController.createLog);

@@ -1,9 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
-import { getMe, updatePassword } from "@/services/user";
+import { getMe, updatePassword, exportData, deleteAccount } from "@/services/user";
 import { getAnalytics } from "@/services/analytics";
 import toast from "react-hot-toast";
-import { User, Activity, Clock, Zap, LogOut, Download, Trash2, Key } from "lucide-react";
+import { User, Activity, Clock, Zap, LogOut, Download, Trash2, Key, AlertTriangle } from "lucide-react";
 
 export default function Settings() {
   const [user, setUser] = useState<any>(null);
@@ -14,6 +14,11 @@ export default function Settings() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
+  const [isExporting, setIsExporting] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteChallenge, setDeleteChallenge] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -70,6 +75,50 @@ export default function Settings() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     window.location.href = "/login";
+  };
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    const toastId = toast.loading("Preparing your data archive...");
+    try {
+      const res = await exportData();
+      if (res?.success) {
+        const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const dateStr = new Date().toISOString().split('T')[0];
+        a.download = `reality-drift-export-${dateStr}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success("Data exported successfully!", { id: toastId });
+      } else {
+        toast.error(res?.error || "Export failed", { id: toastId });
+      }
+    } catch (err) {
+      toast.error("Network error during export", { id: toastId });
+    }
+    setIsExporting(false);
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      const res = await deleteAccount();
+      if (res?.success) {
+        toast.success("Account deleted. Redirecting...");
+        localStorage.removeItem("token");
+        window.location.href = "/login";
+      } else {
+        toast.error(res?.error || "Failed to delete account");
+        setIsDeleting(false);
+      }
+    } catch (err) {
+      toast.error("Network error during deletion");
+      setIsDeleting(false);
+    }
   };
 
   if (isLoading) {
@@ -246,36 +295,82 @@ export default function Settings() {
                 </div>
               </button>
 
-              <div className="w-full flex items-center justify-between p-4 bg-black/20 border border-white/5 rounded-2xl opacity-60">
+              <button onClick={handleExport} disabled={isExporting} className="w-full flex items-center justify-between p-4 bg-black/20 hover:bg-black/40 border border-white/5 rounded-2xl transition-colors text-left group">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white/5 rounded-lg">
-                    <Download className="w-5 h-5 text-gray-400" />
+                  <div className="p-2 bg-white/5 rounded-lg group-hover:bg-white/10 transition-colors">
+                    <Download className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
                   </div>
                   <div>
                     <p className="font-medium text-white">Export Data</p>
-                    <p className="text-xs text-gray-400">Download a JSON archive of your logs.</p>
+                    <p className="text-xs text-gray-400">Download a JSON archive of your logs and insights.</p>
                   </div>
                 </div>
-                <span className="text-[10px] uppercase tracking-wider bg-white/10 text-white px-2 py-0.5 rounded-full font-semibold">Coming Soon</span>
-              </div>
+                {isExporting ? <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold animate-pulse">Exporting...</span> : null}
+              </button>
 
-              <div className="w-full flex items-center justify-between p-4 bg-black/20 border border-white/5 rounded-2xl opacity-60">
+              <button onClick={() => setIsDeleteModalOpen(true)} className="w-full flex items-center justify-between p-4 bg-black/20 hover:bg-red-500/10 border border-white/5 hover:border-red-500/20 rounded-2xl transition-colors text-left group">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white/5 rounded-lg">
-                    <Trash2 className="w-5 h-5 text-gray-400" />
+                  <div className="p-2 bg-white/5 rounded-lg group-hover:bg-red-500/20 transition-colors">
+                    <Trash2 className="w-5 h-5 text-gray-400 group-hover:text-red-400 transition-colors" />
                   </div>
                   <div>
-                    <p className="font-medium text-white">Delete Account</p>
-                    <p className="text-xs text-gray-400">Permanently erase all your data.</p>
+                    <p className="font-medium text-white group-hover:text-red-400 transition-colors">Delete Account</p>
+                    <p className="text-xs text-gray-400 group-hover:text-red-400/70 transition-colors">Permanently erase all your data.</p>
                   </div>
                 </div>
-                <span className="text-[10px] uppercase tracking-wider bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-semibold">Coming Soon</span>
-              </div>
+              </button>
             </div>
           </div>
 
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-red-500/20 max-w-md w-full relative">
+            <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6 border border-red-500/20">
+              <AlertTriangle className="w-6 h-6 text-red-400" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">Delete Account</h3>
+            <p className="text-sm text-gray-400 mb-6 leading-relaxed">
+              This action permanently removes your account, logs, forecasts, insights, and associated data. This action cannot be undone.
+            </p>
+            
+            <div className="mb-8">
+              <label className="block text-xs font-medium text-gray-400 mb-2 uppercase tracking-wider">Type DELETE to continue</label>
+              <input 
+                type="text" 
+                value={deleteChallenge}
+                onChange={(e) => setDeleteChallenge(e.target.value)}
+                placeholder="DELETE"
+                className="w-full bg-black/40 border border-red-500/20 rounded-xl px-4 py-3 text-white focus:border-red-500 focus:outline-none transition-colors text-center font-bold tracking-widest"
+              />
+            </div>
+            
+            <div className="flex gap-3">
+              <button 
+                onClick={() => { setIsDeleteModalOpen(false); setDeleteChallenge(""); }}
+                className="flex-1 bg-white/5 hover:bg-white/10 text-white font-medium py-3 rounded-xl transition-all text-sm border border-white/5"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleDeleteAccount}
+                disabled={deleteChallenge !== "DELETE" || isDeleting}
+                className={`flex-1 font-medium py-3 rounded-xl transition-all text-sm border ${
+                  deleteChallenge === "DELETE" && !isDeleting
+                    ? "bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30" 
+                    : "bg-red-500/5 text-red-400/30 border-red-500/10 cursor-not-allowed"
+                }`}
+              >
+                {isDeleting ? "Deleting..." : "Delete Account"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

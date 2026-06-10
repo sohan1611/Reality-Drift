@@ -39,3 +39,82 @@ exports.updatePassword = async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to update password' });
   }
 };
+
+exports.exportData = async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      include: {
+        logs: { orderBy: { date: 'asc' } },
+        projects: {
+          include: { tasks: true, activityLogs: true }
+        },
+        aiInsights: { orderBy: { date: 'asc' } }
+      }
+    });
+
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    // Separate insights into categories for cleaner export
+    const weeklyReports = [];
+    const forecastHistory = [];
+    const simulatorHistory = [];
+    const generalInsights = [];
+
+    user.aiInsights.forEach(insight => {
+      if (insight.reportData) weeklyReports.push(insight);
+      if (insight.simData) {
+        simulatorHistory.push({
+          date: insight.date,
+          simData: insight.simData
+        });
+        // Forecasts are often embedded in simData.forecastEvaluation
+        if (insight.simData.forecastEvaluation) {
+          forecastHistory.push({
+            date: insight.date,
+            evaluation: insight.simData.forecastEvaluation
+          });
+        }
+      }
+      if (insight.coachData) generalInsights.push(insight);
+    });
+
+    const exportData = {
+      accountMetadata: {
+        exportDate: new Date().toISOString(),
+        version: "1.0",
+      },
+      profile: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        createdAt: user.createdAt,
+      },
+      logs: user.logs,
+      projects: user.projects,
+      insights: generalInsights,
+      weeklyReports: weeklyReports,
+      forecastHistory: forecastHistory,
+      simulatorHistory: simulatorHistory
+    };
+
+    res.status(200).json({ success: true, data: exportData });
+  } catch (error) {
+    console.error('Export Error:', error);
+    res.status(500).json({ success: false, error: 'Failed to export data' });
+  }
+};
+
+exports.deleteAccount = async (req, res) => {
+  try {
+    // Prisma Cascade delete will handle logs, projects, tasks, activity logs, and insights
+    await prisma.user.delete({
+      where: { id: req.user.userId }
+    });
+
+    res.status(200).json({ success: true, message: 'Account deleted successfully' });
+  } catch (error) {
+    console.error('Delete Account Error:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete account' });
+  }
+};
