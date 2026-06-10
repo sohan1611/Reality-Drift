@@ -316,14 +316,14 @@ export default function Settings() {
             <h3 className="text-xl font-bold text-white mb-6">Account Actions</h3>
             
             <div className="space-y-3">
-              <button onClick={handleLogout} className="w-full flex items-center justify-between p-4 bg-black/20 hover:bg-black/40 border border-white/5 rounded-2xl transition-colors text-left group">
+              <button onClick={handleLogout} className="w-full flex items-center justify-between p-4 bg-black/20 hover:bg-red-500/5 border border-white/5 hover:border-red-500/30 rounded-2xl transition-all duration-200 text-left group">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white/5 rounded-lg group-hover:bg-white/10 transition-colors">
-                    <LogOut className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
+                  <div className="p-2 bg-red-500/5 rounded-lg group-hover:bg-red-500/10 transition-all duration-200">
+                    <LogOut className="w-5 h-5 text-red-400/60 group-hover:text-red-400 transition-colors" />
                   </div>
                   <div>
-                    <p className="font-medium text-white">Log Out</p>
-                    <p className="text-xs text-gray-400">Securely end your current session.</p>
+                    <p className="font-medium text-red-400/80 group-hover:text-red-400 transition-colors">Log Out</p>
+                    <p className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors">Securely end your current session.</p>
                   </div>
                 </div>
               </button>
