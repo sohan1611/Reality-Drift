@@ -24,7 +24,7 @@ model User {
 model DailyLog {
   id          String   @id @default(uuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   studyHours  Float    @default(0)
   screenTime  Float    @default(0)
   sleepHours  Float    @default(0)
@@ -32,7 +32,7 @@ model DailyLog {
   codingHours Float    @default(0)
   exerciseSessions Int @default(0)
   exerciseMinutes  Float @default(0)
-  date        DateTime @default(now())
+  date        DateTime @db.Date
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -42,7 +42,7 @@ model DailyLog {
 model Project {
   id           String        @id @default(uuid())
   userId       String
-  user         User          @relation(fields: [userId], references: [id])
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   title        String
   description  String?
   progress     Int           @default(0) // 0-100 percentage
