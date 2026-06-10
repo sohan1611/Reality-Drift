@@ -1,34 +1,48 @@
 const aiService = require('../services/aiService');
 const { PrismaClient } = require('@prisma/client');
+const crypto = require('crypto');
 const prisma = new PrismaClient();
 
-// Simple in-memory cache: Map<userId, { timestamp, data }>
-const coachCache = new Map();
-const simCache = new Map();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+function getLogHash(logs) {
+  return crypto.createHash('md5').update(JSON.stringify(logs)).digest('hex');
+}
+
+function getTodayDate() {
+  const d = new Date();
+  d.setUTCHours(0, 0, 0, 0);
+  return d;
+}
 
 exports.runSimulation = async (req, res) => {
   try {
     const userId = req.user.userId;
-
-    if (simCache.has(userId)) {
-      const cached = simCache.get(userId);
-      if (Date.now() - cached.timestamp < CACHE_TTL) {
-        return res.status(200).json({ success: true, data: cached.data });
-      }
-    }
-
     const logs = await prisma.dailyLog.findMany({
       where: { userId: userId },
       orderBy: { date: 'desc' },
-      take: 14 // Use up to 14 days for simulation
+      take: 14
     });
+
+    const hash = getLogHash(logs);
+    const today = getTodayDate();
+
+    // Check DB cache
+    const existingCache = await prisma.aiInsight.findUnique({
+      where: { userId_date: { userId, date: today } }
+    });
+
+    if (existingCache && existingCache.logHash === hash && existingCache.simData) {
+      return res.status(200).json({ success: true, data: existingCache.simData });
+    }
 
     const simulationResult = await aiService.generateSimulation(logs);
     
-    // Only cache if it's a successful generated result (not a fallback)
+    // Only cache if it's a successful generated result
     if (!simulationResult.bestCase?.includes('Unable to simulate')) {
-      simCache.set(userId, { timestamp: Date.now(), data: simulationResult });
+      await prisma.aiInsight.upsert({
+        where: { userId_date: { userId, date: today } },
+        update: { logHash: hash, simData: simulationResult },
+        create: { userId, date: today, logHash: hash, simData: simulationResult }
+      });
     }
 
     res.status(200).json({ success: true, data: simulationResult });
@@ -41,7 +55,6 @@ exports.runSimulation = async (req, res) => {
 exports.detectPatterns = async (req, res) => {
   try {
     const userId = req.user.userId;
-
     const logs = await prisma.dailyLog.findMany({
       where: { userId: userId },
       orderBy: { date: 'asc' },
@@ -49,7 +62,6 @@ exports.detectPatterns = async (req, res) => {
     });
 
     const patterns = aiService.detectPatterns(logs);
-    
     res.status(200).json({ success: true, data: patterns });
   } catch (error) {
     console.error("Pattern Controller Error:", error.message);
@@ -60,24 +72,31 @@ exports.detectPatterns = async (req, res) => {
 exports.generateCoach = async (req, res) => {
   try {
     const userId = req.user.userId;
-
-    if (coachCache.has(userId)) {
-      const cached = coachCache.get(userId);
-      if (Date.now() - cached.timestamp < CACHE_TTL) {
-        return res.status(200).json({ success: true, data: cached.data });
-      }
-    }
-
     const logs = await prisma.dailyLog.findMany({
       where: { userId: userId },
       orderBy: { date: 'desc' },
       take: 7
     });
 
+    const hash = getLogHash(logs);
+    const today = getTodayDate();
+
+    const existingCache = await prisma.aiInsight.findUnique({
+      where: { userId_date: { userId, date: today } }
+    });
+
+    if (existingCache && existingCache.logHash === hash && existingCache.coachData) {
+      return res.status(200).json({ success: true, data: existingCache.coachData });
+    }
+
     const advice = await aiService.generateCoaching(logs);
     
     if (!advice.summary?.includes('AI systems are currently analyzing')) {
-      coachCache.set(userId, { timestamp: Date.now(), data: advice });
+      await prisma.aiInsight.upsert({
+        where: { userId_date: { userId, date: today } },
+        update: { logHash: hash, coachData: advice },
+        create: { userId, date: today, logHash: hash, coachData: advice }
+      });
     }
 
     res.status(200).json({ success: true, data: advice });

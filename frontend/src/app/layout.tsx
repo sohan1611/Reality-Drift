@@ -12,6 +12,10 @@ export const metadata: Metadata = {
   description: "AI productivity dashboard and life pattern simulator",
 };
 
+import { GoogleOAuthProvider } from "@react-oauth/google";
+
+const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "881368379750-iaghrb7tjonptbnpsu6dsv4ecmkve4bo.apps.googleusercontent.com";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -20,14 +24,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} flex h-screen overflow-hidden text-white`}>
-        <Toaster position="top-center" />
-        <Sidebar />
-        <div className="flex-1 flex flex-col h-full overflow-hidden w-full min-w-0">
-          <Navbar />
-          <main className="flex-1 overflow-y-auto p-3 md:p-6 scrollbar-hide">
-            {children}
-          </main>
-        </div>
+        <GoogleOAuthProvider clientId={CLIENT_ID}>
+          <Toaster position="top-center" />
+          <Sidebar />
+          <div className="flex-1 flex flex-col h-full overflow-hidden w-full min-w-0">
+            <Navbar />
+            <main className="flex-1 overflow-y-auto p-3 md:p-6 scrollbar-hide">
+              {children}
+            </main>
+          </div>
+        </GoogleOAuthProvider>
       </body>
     </html>
   );

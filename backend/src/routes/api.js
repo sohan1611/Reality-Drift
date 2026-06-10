@@ -10,6 +10,7 @@ const auth = require('../middlewares/authMiddleware');
 // Auth Routes
 router.post('/auth/signup', authController.signup);
 router.post('/auth/login', authController.login);
+router.post('/auth/google', authController.googleLogin);
 
 // User Routes (Protected)
 router.get('/user/me', auth, userController.getMe);

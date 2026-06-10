@@ -1,9 +1,12 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { OAuth2Client } = require('google-auth-library');
 
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'reality-drift-super-secret-key';
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '881368379750-iaghrb7tjonptbnpsu6dsv4ecmkve4bo.apps.googleusercontent.com';
+const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 exports.signup = async (req, res) => {
   try {
@@ -42,8 +45,8 @@ exports.login = async (req, res) => {
     
     // Check if user exists
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      return res.status(400).json({ success: false, error: 'Invalid credentials' });
+    if (!user || !user.password) {
+      return res.status(400).json({ success: false, error: 'Invalid credentials or user uses Google Login' });
     }
 
     // Compare password
@@ -58,5 +61,53 @@ exports.login = async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ success: false, error: 'Failed to log in' });
+  }
+};
+
+exports.googleLogin = async (req, res) => {
+  try {
+    const { credential } = req.body;
+    
+    if (!credential) {
+      return res.status(400).json({ success: false, error: 'No credential provided' });
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: GOOGLE_CLIENT_ID,
+    });
+    
+    const payload = ticket.getPayload();
+    const email = payload.email;
+    const name = payload.name;
+    const googleId = payload.sub;
+
+    let user = await prisma.user.findUnique({ where: { email } });
+
+    if (user) {
+      // If user exists but doesn't have a googleId, link the account
+      if (!user.googleId) {
+        user = await prisma.user.update({
+          where: { email },
+          data: { googleId }
+        });
+      }
+    } else {
+      // Create new user without password
+      user = await prisma.user.create({
+        data: {
+          email,
+          name,
+          googleId
+        }
+      });
+    }
+
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+
+    res.status(200).json({ success: true, token, user: { id: user.id, email: user.email, name: user.name } });
+  } catch (error) {
+    console.error('Google login error:', error);
+    res.status(500).json({ success: false, error: 'Failed to authenticate with Google' });
   }
 };

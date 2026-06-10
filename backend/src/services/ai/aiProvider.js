@@ -8,10 +8,12 @@ class AIProvider {
     }
     this.genAI = this.apiKey ? new GoogleGenerativeAI(this.apiKey) : null;
     
-    // Model fallback chain: primary, secondary, emergency
+    // Model fallback chain: primary flash, secondary flash, emergency pro
     this.modelChain = [
+      "gemini-3.5-flash",
       "gemini-2.5-flash",
       "gemini-2.0-flash",
+      "gemini-flash-latest",
       "gemini-pro-latest"
     ];
   }
@@ -26,7 +28,7 @@ class AIProvider {
     }
 
     const maxRetries = 2; // For transient network errors like 429
-    let lastError = null;
+    let allErrors = [];
 
     for (const modelName of this.modelChain) {
       try {
@@ -40,15 +42,19 @@ class AIProvider {
           try {
             const result = await Promise.race([
               model.generateContent(prompt),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('AI Request Timeout')), 9000)) // 9s timeout to prevent Vercel 10s kill
+              new Promise((_, reject) => setTimeout(() => reject(new Error('AI Request Timeout')), 9000))
             ]);
             return result.response.text();
           } catch (error) {
-            lastError = error;
             console.error(`AIProvider Error on ${modelName} (attempt ${attempt + 1}):`, error.message);
             
-            // If it's a 404 (model not found) or 400 (bad request), don't retry the same model, jump to next model
+            if (attempt === maxRetries) {
+              allErrors.push(`[${modelName}]: ${error.message}`);
+            }
+
+            // If it's a 404 (model not found) or 400 (bad request), don't retry the same model
             if (error.message.includes('404') || error.message.includes('not found') || error.message.includes('400')) {
+              if (attempt < maxRetries) allErrors.push(`[${modelName}]: ${error.message}`);
               break; 
             }
 
@@ -60,14 +66,15 @@ class AIProvider {
           }
         }
       } catch (modelError) {
-        lastError = modelError;
+        allErrors.push(`[${modelName} Setup]: ${modelError.message}`);
         console.error(`AIProvider Setup Error on ${modelName}:`, modelError.message);
       }
       console.warn(`Falling back from ${modelName} to next model in chain...`);
     }
 
-    // If we exhaust the entire chain, throw the final error
-    throw new Error(`All models failed. Last error: ${lastError ? lastError.message : "Unknown"}`);
+    // If we exhaust the entire chain, throw the accumulated errors
+    const errorLog = allErrors.join(' | ');
+    throw new Error(`All fallback models exhausted. Errors: ${errorLog}`);
   }
 }
 
