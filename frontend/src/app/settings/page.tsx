@@ -84,9 +84,13 @@ export default function Settings() {
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : "U";
 
   // Safe Analytics Fallbacks
-  const realityScore = analytics?.realityScore ?? "—";
-  const momentum = analytics?.momentum ?? "—";
-  const totalLogs = analytics?.totalLogs ?? 0;
+  const realityScore = analytics?.realityScore?.current ?? "—";
+  let momentum = analytics?.momentum?.status ?? "—";
+  // Strip emojis from momentum
+  if (typeof momentum === 'string') {
+    momentum = momentum.replace(/[^a-zA-Z]/g, '');
+  }
+  const totalLogs = analytics?.trends?.length ?? 0;
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-16">
