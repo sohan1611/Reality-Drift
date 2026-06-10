@@ -4,7 +4,6 @@ import { LayoutDashboard, FolderKanban, Activity, MessageSquare, Settings, User,
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { getMe } from "@/services/user";
 
 const navItems = [
   { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
@@ -18,23 +17,7 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [userName, setUserName] = useState("User");
   const [isOpen, setIsOpen] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    getMe()
-      .then(res => {
-        if (res?.success) {
-          setUserName(res.data.name);
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   // Close sidebar on route change (mobile)
   useEffect(() => {
@@ -104,16 +87,6 @@ export default function Sidebar() {
           })}
         </nav>
 
-        <div className="p-4 mt-auto">
-          <div className="glass-panel p-4 rounded-2xl flex items-center gap-3 hover:bg-white/5 transition-colors cursor-pointer glow-border">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center">
-              <User className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white">{userName}</p>
-            </div>
-          </div>
-        </div>
       </aside>
     </>
   );

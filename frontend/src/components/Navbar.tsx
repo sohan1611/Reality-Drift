@@ -156,9 +156,6 @@ export default function Navbar() {
               </div>
               <div className="p-2 flex flex-col gap-1">
                 <Link href="/settings" className="flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
-                  <Shield className="w-4 h-4" /> Profile
-                </Link>
-                <Link href="/settings" className="flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
                   <SettingsIcon className="w-4 h-4" /> Settings
                 </Link>
                 <div className="h-px bg-white/5 my-1"></div>
