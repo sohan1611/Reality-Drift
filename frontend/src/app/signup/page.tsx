@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-import { signup } from "@/services/auth";
+import { signup, googleLogin } from "@/services/auth";
 import { GoogleLogin } from "@react-oauth/google";
 
 export default function Signup() {
@@ -78,12 +78,8 @@ export default function Signup() {
           <GoogleLogin
             onSuccess={async (credentialResponse) => {
               try {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/google`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ credential: credentialResponse.credential })
-                });
-                const data = await res.json();
+                if (!credentialResponse.credential) throw new Error("No credential");
+                const data = await googleLogin(credentialResponse.credential);
                 if (data.success) {
                   localStorage.setItem("token", data.token);
                   router.push("/");
