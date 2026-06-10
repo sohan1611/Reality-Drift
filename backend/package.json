@@ -21,6 +21,7 @@
     "express": "^5.2.1",
     "google-auth-library": "^10.7.0",
     "jsonwebtoken": "^9.0.3",
-    "prisma": "5.22.0"
+    "prisma": "5.22.0",
+    "resend": "^6.12.4"
   }
 }

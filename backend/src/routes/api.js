@@ -5,6 +5,7 @@ const logController = require('../controllers/logController');
 const aiController = require('../controllers/aiController');
 const projectController = require('../controllers/projectController');
 const userController = require('../controllers/userController');
+const supportController = require('../controllers/supportController');
 const auth = require('../middlewares/authMiddleware');
 
 // Auth Routes
@@ -49,5 +50,9 @@ router.post('/simulate', auth, aiController.runSimulation);
 router.post('/simulate-decision', auth, aiController.simulateDecision);
 router.post('/coach', auth, aiController.generateCoach);
 router.post('/report', auth, aiController.generateWeeklyReport);
+
+// Support & Feedback (Protected)
+router.post('/support/issue', auth, supportController.submitIssueReport);
+router.post('/support/feature', auth, supportController.submitFeatureRequest);
 
 module.exports = router;

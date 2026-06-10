@@ -1,4 +1,5 @@
 import { HelpCircle, Activity, BrainCircuit, LineChart, FileText, CalendarClock, MessageSquare, AlertTriangle } from "lucide-react";
+import Link from "next/link";
 
 export default function Help() {
   const faqs = [
@@ -106,20 +107,18 @@ export default function Help() {
       <div className="space-y-6">
         <h3 className="text-2xl font-bold text-white border-b border-white/10 pb-4">Support</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div className="glass-panel p-6 rounded-2xl border border-white/5 flex items-center justify-between opacity-60">
+          <Link href="/support/report-issue" className="glass-panel p-6 rounded-2xl border border-white/5 flex items-center justify-between hover:bg-white/5 transition-colors group">
             <div>
-              <h4 className="font-bold text-white">Report an Issue</h4>
+              <h4 className="font-bold text-white group-hover:text-primary transition-colors">Report an Issue</h4>
               <p className="text-xs text-gray-400 mt-1">Found a bug? Let us know.</p>
             </div>
-            <span className="text-[10px] uppercase tracking-wider bg-white/10 text-white px-2 py-0.5 rounded-full font-semibold">Coming Soon</span>
-          </div>
-          <div className="glass-panel p-6 rounded-2xl border border-white/5 flex items-center justify-between opacity-60">
+          </Link>
+          <Link href="/support/feature-request" className="glass-panel p-6 rounded-2xl border border-white/5 flex items-center justify-between hover:bg-white/5 transition-colors group">
             <div>
-              <h4 className="font-bold text-white">Feature Requests</h4>
+              <h4 className="font-bold text-white group-hover:text-primary transition-colors">Feature Requests</h4>
               <p className="text-xs text-gray-400 mt-1">Suggest an improvement.</p>
             </div>
-            <span className="text-[10px] uppercase tracking-wider bg-white/10 text-white px-2 py-0.5 rounded-full font-semibold">Coming Soon</span>
-          </div>
+          </Link>
         </div>
       </div>
     </div>
