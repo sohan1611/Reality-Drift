@@ -33,7 +33,7 @@ const isValidUrl = (urlStr) => {
 
 const submitIssueReport = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const { type, title, description, stepsToReproduce, screenshotUrl } = req.body;
 
     if (!type || !title || !description) {
@@ -82,7 +82,7 @@ const submitIssueReport = async (req, res) => {
 
 const submitFeatureRequest = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const { category, title, description } = req.body;
 
     if (!category || !title || !description) {
