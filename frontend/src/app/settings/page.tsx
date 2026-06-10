@@ -1,10 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
 import { getMe, updatePassword } from "@/services/user";
+import { getAnalytics } from "@/services/analytics";
 import toast from "react-hot-toast";
+import { User, Activity, Clock, Zap, LogOut, Download, Trash2, Key } from "lucide-react";
 
 export default function Settings() {
   const [user, setUser] = useState<any>(null);
+  const [analytics, setAnalytics] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   
   const [currentPassword, setCurrentPassword] = useState("");
@@ -13,29 +16,32 @@ export default function Settings() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-  const fetchUser = async () => {
-    if (typeof window === "undefined") return;
+    const fetchData = async () => {
+      if (typeof window === "undefined") return;
 
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const data = await getMe();
-      if (data?.success) {
-        setUser(data.data);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setIsLoading(false);
+        return;
       }
-    } catch (err) {
-      // optional: don't show toast for unauthenticated user
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  fetchUser();
-}, []);
+      try {
+        const [userRes, analyticsRes] = await Promise.all([
+          getMe().catch(() => null),
+          getAnalytics().catch(() => null)
+        ]);
+
+        if (userRes?.success) setUser(userRes.data);
+        if (analyticsRes?.success) setAnalytics(analyticsRes.data);
+      } catch (err) {
+        // Suppress errors
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,90 +76,200 @@ export default function Settings() {
     return <div className="text-center py-12 text-gray-500">Loading system preferences...</div>;
   }
 
+  // Format date natively
+  const memberSince = user?.createdAt 
+    ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    : "Unknown";
+    
+  const initial = user?.name ? user.name.charAt(0).toUpperCase() : "U";
+
+  // Safe Analytics Fallbacks
+  const realityScore = analytics?.realityScore ?? "—";
+  const momentum = analytics?.momentum ?? "—";
+  const totalLogs = analytics?.totalLogs ?? 0;
+
   return (
-    <div className="space-y-6 max-w-4xl mx-auto pb-12">
-      <h2 className="text-3xl font-bold tracking-tight glow-text">Account Settings</h2>
+    <div className="space-y-8 max-w-6xl mx-auto pb-16">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight text-white mb-2">Settings</h2>
+        <p className="text-gray-400">Manage your profile, preferences, and security.</p>
+      </div>
       
-      <div className="space-y-6">
+      <div className="lg:grid lg:grid-cols-12 lg:gap-8 space-y-8 lg:space-y-0">
         
-        {/* Profile Info */}
-        <div className="glass-panel p-6 rounded-2xl glow-border">
-          <h3 className="text-xl font-bold mb-4">Profile</h3>
-          <div className="space-y-4">
-            <div className="flex flex-col">
-              <span className="text-sm text-gray-400">Name</span>
-              <span className="text-lg font-medium text-white">{user?.name || "Unknown"}</span>
+        {/* Left Column: Profile Hero */}
+        <div className="lg:col-span-5 space-y-8">
+          <div className="glass-panel rounded-3xl p-8 border border-white/5 shadow-xl flex flex-col items-center text-center">
+            <div className="w-24 h-24 bg-gradient-to-br from-primary to-purple-600 rounded-full flex items-center justify-center text-3xl font-bold text-white shadow-lg shadow-primary/20 mb-4">
+              {initial}
             </div>
-            <div className="flex flex-col">
-              <span className="text-sm text-gray-400">Email Address</span>
-              <span className="text-lg font-medium text-white">{user?.email || "Unknown"}</span>
+            <h3 className="text-2xl font-bold text-white">{user?.name || "User"}</h3>
+            <p className="text-gray-400 mb-6">{user?.email || "Unknown"}</p>
+            
+            <div className="flex items-center gap-2 text-sm text-gray-500 mb-8 bg-black/20 px-4 py-2 rounded-full">
+              <User className="w-4 h-4" />
+              <span>Member since {memberSince}</span>
             </div>
-            <div className="flex flex-col">
-              <span className="text-sm text-gray-400">Member Since</span>
-              <span className="text-sm font-medium text-gray-300">
-                {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "Unknown"}
-              </span>
-            </div>
-          </div>
-        </div>
 
-        {/* Change Password */}
-        <div className="glass-panel p-6 rounded-2xl glow-border">
-          <h3 className="text-xl font-bold mb-4">Change Password</h3>
-          <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Current Password</label>
-              <input 
-                type="password" required
-                className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-white" 
-                value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} 
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">New Password</label>
-              <input 
-                type="password" required minLength={6}
-                className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-white" 
-                value={newPassword} onChange={e => setNewPassword(e.target.value)} 
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Confirm New Password</label>
-              <input 
-                type="password" required minLength={6}
-                className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-white" 
-                value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} 
-              />
-            </div>
-            <button 
-              type="submit" disabled={isSaving}
-              className="mt-4 bg-primary hover:bg-primary/80 text-white font-semibold px-6 py-2.5 rounded-xl transition-all w-full"
-            >
-              {isSaving ? "Updating Password..." : "Save Changes"}
-            </button>
-          </form>
-        </div>
-
-        <div className="glass-panel p-6 rounded-2xl glow-border">
-          <h3 className="text-xl font-bold mb-4">Preferences</h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Dark Mode</p>
-                <p className="text-sm text-gray-400">Easier on the eyes in low-light environments.</p>
+            <div className="grid grid-cols-3 gap-3 w-full">
+              <div className="bg-black/30 border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center">
+                <Activity className="w-5 h-5 text-blue-400 mb-2" />
+                <span className="text-2xl font-bold text-white">{realityScore}</span>
+                <span className="text-xs text-gray-400 uppercase tracking-wider mt-1">Score</span>
               </div>
-              <div className="w-12 h-6 bg-primary rounded-full relative cursor-pointer shadow-[0_0_10px_rgba(138,43,226,0.5)]">
-                <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full"></div>
+              <div className="bg-black/30 border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center">
+                <Zap className="w-5 h-5 text-amber-400 mb-2" />
+                <span className="text-sm font-bold text-white">{momentum}</span>
+                <span className="text-xs text-gray-400 uppercase tracking-wider mt-1">Momentum</span>
+              </div>
+              <div className="bg-black/30 border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center">
+                <Clock className="w-5 h-5 text-green-400 mb-2" />
+                <span className="text-2xl font-bold text-white">{totalLogs}</span>
+                <span className="text-xs text-gray-400 uppercase tracking-wider mt-1">Logs</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="glass-panel p-6 rounded-2xl glow-border border-red-500/20">
-          <h3 className="text-xl font-bold mb-4 text-red-400">Danger Zone</h3>
-          <button onClick={handleLogout} className="px-4 py-2 border border-red-500/50 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors">
-            Log Out
-          </button>
+        {/* Right Column: Preferences & Security */}
+        <div className="lg:col-span-7 space-y-8">
+          
+          {/* Preferences */}
+          <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5">
+            <div className="mb-6">
+              <h3 className="text-xl font-bold text-white">Preferences</h3>
+              <p className="text-sm text-gray-400 mt-1">Customize how Reality Drift works for you.</p>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="flex items-center justify-between p-4 bg-black/20 rounded-2xl border border-white/5">
+                <div>
+                  <p className="font-medium text-white">Dark Mode</p>
+                  <p className="text-sm text-gray-400">Easier on the eyes in low-light environments.</p>
+                </div>
+                <div className="w-12 h-6 bg-primary rounded-full relative cursor-pointer shadow-[0_0_10px_rgba(138,43,226,0.3)]">
+                  <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full"></div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-black/20 rounded-2xl border border-white/5 opacity-70">
+                <div>
+                  <div className="flex items-center gap-3">
+                    <p className="font-medium text-white">Weekly Reports</p>
+                    <span className="text-[10px] uppercase tracking-wider bg-white/10 text-white px-2 py-0.5 rounded-full font-semibold">Coming Soon</span>
+                  </div>
+                  <p className="text-sm text-gray-400 mt-0.5">Receive a weekly summary of your reality drift.</p>
+                </div>
+                <div className="w-12 h-6 bg-gray-600 rounded-full relative">
+                  <div className="absolute left-1 top-1 w-4 h-4 bg-gray-400 rounded-full"></div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-black/20 rounded-2xl border border-white/5 opacity-70">
+                <div>
+                  <div className="flex items-center gap-3">
+                    <p className="font-medium text-white">Coach Notifications</p>
+                    <span className="text-[10px] uppercase tracking-wider bg-white/10 text-white px-2 py-0.5 rounded-full font-semibold">Coming Soon</span>
+                  </div>
+                  <p className="text-sm text-gray-400 mt-0.5">Get timely AI insights directly to your device.</p>
+                </div>
+                <div className="w-12 h-6 bg-gray-600 rounded-full relative">
+                  <div className="absolute left-1 top-1 w-4 h-4 bg-gray-400 rounded-full"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Security */}
+          <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5">
+            <div className="mb-6 flex items-center gap-2">
+              <Key className="w-5 h-5 text-gray-400" />
+              <h3 className="text-xl font-bold text-white">Security</h3>
+            </div>
+            
+            <form onSubmit={handlePasswordChange} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">Current Password</label>
+                  <input 
+                    type="password" required
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-white focus:border-primary focus:outline-none transition-colors text-sm" 
+                    value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} 
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">New Password</label>
+                  <input 
+                    type="password" required minLength={6}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-white focus:border-primary focus:outline-none transition-colors text-sm" 
+                    value={newPassword} onChange={e => setNewPassword(e.target.value)} 
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">Confirm Password</label>
+                  <input 
+                    type="password" required minLength={6}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-white focus:border-primary focus:outline-none transition-colors text-sm" 
+                    value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} 
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end pt-2">
+                <button 
+                  type="submit" disabled={isSaving}
+                  className="bg-white/10 hover:bg-white/20 text-white font-medium px-6 py-2 rounded-xl transition-all text-sm"
+                >
+                  {isSaving ? "Updating..." : "Update Password"}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Danger Zone */}
+          <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-red-500/10">
+            <h3 className="text-xl font-bold text-red-400 mb-6">Account Actions</h3>
+            
+            <div className="space-y-3">
+              <button onClick={handleLogout} className="w-full flex items-center justify-between p-4 bg-black/20 hover:bg-black/40 border border-red-500/20 rounded-2xl transition-colors text-left group">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-red-500/10 rounded-lg group-hover:bg-red-500/20 transition-colors">
+                    <LogOut className="w-5 h-5 text-red-400" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-red-400">Log Out</p>
+                    <p className="text-xs text-red-400/70">Securely end your current session.</p>
+                  </div>
+                </div>
+              </button>
+
+              <div className="w-full flex items-center justify-between p-4 bg-black/20 border border-white/5 rounded-2xl opacity-60">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white/5 rounded-lg">
+                    <Download className="w-5 h-5 text-gray-400" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-white">Export Data</p>
+                    <p className="text-xs text-gray-400">Download a JSON archive of your logs.</p>
+                  </div>
+                </div>
+                <span className="text-[10px] uppercase tracking-wider bg-white/10 text-white px-2 py-0.5 rounded-full font-semibold">Coming Soon</span>
+              </div>
+
+              <div className="w-full flex items-center justify-between p-4 bg-black/20 border border-white/5 rounded-2xl opacity-60">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white/5 rounded-lg">
+                    <Trash2 className="w-5 h-5 text-gray-400" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-white">Delete Account</p>
+                    <p className="text-xs text-gray-400">Permanently erase all your data.</p>
+                  </div>
+                </div>
+                <span className="text-[10px] uppercase tracking-wider bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-semibold">Coming Soon</span>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

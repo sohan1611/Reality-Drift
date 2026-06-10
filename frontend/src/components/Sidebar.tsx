@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, FolderKanban, Activity, MessageSquare, Settings, User, HelpCircle, Info, Menu, X, BrainCircuit } from "lucide-react";
+import { LayoutDashboard, FolderKanban, Activity, Bell, Settings, User, HelpCircle, Info, Menu, X, BrainCircuit } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -10,10 +10,10 @@ const navItems = [
   { name: "Simulator", icon: BrainCircuit, href: "/simulator" },
   { name: "Projects", icon: FolderKanban, href: "/projects" },
   { name: "Analytics", icon: Activity, href: "/analytics" },
-  { name: "Messages", icon: MessageSquare, href: "/messages" },
+  { name: "Notifications", icon: Bell, href: "/notifications" },
   { name: "Settings", icon: Settings, href: "/settings" },
-  { name: "Help", icon: HelpCircle, href: "/help" },
-  { name: "About Us", icon: Info, href: "/about" },
+  { name: "Help & Learning", icon: HelpCircle, href: "/help" },
+  { name: "About", icon: Info, href: "/about" },
 ];
 
 export default function Sidebar() {
