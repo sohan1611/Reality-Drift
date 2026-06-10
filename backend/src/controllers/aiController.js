@@ -2,6 +2,7 @@ const aiService = require('../services/aiService');
 const { PrismaClient } = require('@prisma/client');
 const crypto = require('crypto');
 const prisma = new PrismaClient();
+const statsEngine = require('../services/analytics/statsEngine');
 
 function getLogHash(logs) {
   return crypto.createHash('md5').update(JSON.stringify(logs)).digest('hex');
@@ -89,7 +90,22 @@ exports.generateCoach = async (req, res) => {
       return res.status(200).json({ success: true, data: existingCache.coachData });
     }
 
-    const advice = await aiService.generateCoaching(logs);
+    const historicalLogs = await prisma.dailyLog.findMany({
+      where: { userId: userId },
+      orderBy: { date: 'asc' },
+      take: 28
+    });
+    const momentum = statsEngine.calculateMomentum(historicalLogs);
+    const drifts = statsEngine.detectDrift(historicalLogs);
+    const pastInsights = await prisma.aiInsight.findMany({
+      where: { userId: userId, coachData: { not: null } },
+      orderBy: { date: 'desc' },
+      take: 3
+    });
+    const previousThemes = pastInsights.map(i => i.coachData?.summary).filter(Boolean);
+    const historicalContext = { momentum, drifts, previousThemes };
+
+    const advice = await aiService.generateCoaching(logs, historicalContext);
     
     if (!advice.summary?.includes('AI systems are currently analyzing')) {
       await prisma.aiInsight.upsert({
@@ -103,5 +119,63 @@ exports.generateCoach = async (req, res) => {
   } catch (error) {
     console.error("Coaching Controller Error:", error.message);
     res.status(500).json({ success: false, error: 'Coaching generation failed' });
+  }
+};
+
+exports.generateWeeklyReport = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const today = getTodayDate();
+    
+    // We cache weekly report based on week start (Monday)
+    const dayOfWeek = today.getDay();
+    const diffToMonday = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+    const weekStart = new Date(today.setDate(diffToMonday));
+    weekStart.setUTCHours(0, 0, 0, 0);
+
+    const existingCache = await prisma.aiInsight.findFirst({
+      where: { userId: userId, date: weekStart, reportData: { not: null } }
+    });
+
+    if (existingCache && existingCache.reportData) {
+      return res.status(200).json({ success: true, data: existingCache.reportData });
+    }
+
+    const logs = await prisma.dailyLog.findMany({
+      where: { userId: userId },
+      orderBy: { date: 'asc' },
+      take: 28
+    });
+
+    if (logs.length < 7) {
+      return res.status(200).json({ success: true, data: { biggestWin: "Need more data.", biggestRisk: "Need more data.", narrative: "Log a full week to unlock your report." } });
+    }
+
+    const currentScore = statsEngine.calculateRealityScore(logs);
+    const scoreWeekAgo = statsEngine.calculateHistoricalScore(logs, 7);
+    const momentum = statsEngine.calculateMomentum(logs);
+    const drifts = statsEngine.detectDrift(logs);
+    const correlations = statsEngine.calculateCorrelations(logs);
+
+    const statsSummary = {
+      currentScore,
+      weekChange: currentScore - scoreWeekAgo,
+      momentum,
+      drifts,
+      correlations
+    };
+
+    const report = await aiService.generateReport(statsSummary);
+
+    await prisma.aiInsight.upsert({
+      where: { userId_date: { userId, date: weekStart } },
+      update: { reportData: report },
+      create: { userId, date: weekStart, logHash: "weekly", reportData: report }
+    });
+
+    res.status(200).json({ success: true, data: report });
+  } catch (error) {
+    console.error("Weekly Report Error:", error.message);
+    res.status(500).json({ success: false, error: 'Failed to generate weekly report' });
   }
 };

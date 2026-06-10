@@ -3,14 +3,14 @@ const fallbackManager = require('./fallbackManager');
 const responseParser = require('./responseParser');
 const promptBuilder = require('./promptBuilder');
 
-exports.generateCoaching = async (logs) => {
+exports.generateCoaching = async (logs, historicalContext) => {
   if (!logs || logs.length === 0) {
     return fallbackManager.getCoachEmptyState();
   }
 
   try {
     const metrics = promptBuilder.analyzeMetrics(logs);
-    const prompt = promptBuilder.buildCoachingPrompt(logs, metrics);
+    const prompt = promptBuilder.buildCoachingPrompt(logs, metrics, historicalContext);
     
     const responseText = await aiProvider.generateWithRetry(prompt, true);
     const parsedData = responseParser.parseJsonSafely(responseText);
@@ -23,6 +23,21 @@ exports.generateCoaching = async (logs) => {
   } catch (error) {
     console.error("Coaching Orchestration Error:", error.message);
     return fallbackManager.getCoachFallback(error.message);
+  }
+};
+
+exports.generateReport = async (statsSummary) => {
+  try {
+    const prompt = promptBuilder.buildReportPrompt(statsSummary);
+    const responseText = await aiProvider.generateWithRetry(prompt, true);
+    const parsedData = responseParser.parseJsonSafely(responseText);
+    if (!parsedData) {
+      throw new Error("Failed to parse weekly report JSON.");
+    }
+    return parsedData;
+  } catch (error) {
+    console.error("Report Generation Error:", error.message);
+    return { biggestWin: "Data successfully synced.", biggestRisk: "Unable to reach AI for analysis.", narrative: "Analytics captured correctly but AI service offline." };
   }
 };
 

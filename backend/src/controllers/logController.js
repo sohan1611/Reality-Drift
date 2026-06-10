@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const statsEngine = require('../services/analytics/statsEngine');
 
 exports.createLog = async (req, res) => {
   try {
@@ -99,10 +100,11 @@ exports.deleteLog = async (req, res) => {
 
 exports.getAnalytics = async (req, res) => {
   try {
+    // 365 logs for maximum heatmap and correlation depth
     const logs = await prisma.dailyLog.findMany({
       where: { userId: req.user.userId },
       orderBy: { date: 'asc' },
-      take: 30
+      take: 365
     });
     
     if (logs.length === 0) {
@@ -111,7 +113,12 @@ exports.getAnalytics = async (req, res) => {
         data: {
           averages: { studyHours: 0, mood: 0 },
           trends: [],
-          charts: { areaData: [], pieData: [], barData: [] }
+          charts: { areaData: [], pieData: [], barData: [] },
+          realityScore: { current: 0, weekChange: 0, monthChange: 0 },
+          momentum: { status: 'Stable ➖', changes: { focus: 0, mood: 0, consistency: 0 } },
+          drifts: [],
+          correlations: [],
+          heatmap: []
         }
       });
     }
@@ -119,7 +126,7 @@ exports.getAnalytics = async (req, res) => {
     const avgStudy = logs.reduce((acc, log) => acc + log.studyHours, 0) / logs.length;
     const avgMood = logs.reduce((acc, log) => acc + log.mood, 0) / logs.length;
 
-    const areaData = logs.map(log => ({
+    const areaData = logs.slice(-14).map(log => ({
       name: new Date(log.date).toLocaleDateString(undefined, { weekday: 'short' }),
       study: log.studyHours,
       coding: log.codingHours
@@ -138,12 +145,36 @@ exports.getAnalytics = async (req, res) => {
       productivity: log.studyHours + log.codingHours
     }));
 
+    // --- Analytics Engine Integrations ---
+    const currentScore = statsEngine.calculateRealityScore(logs);
+    const scoreWeekAgo = statsEngine.calculateHistoricalScore(logs, 7);
+    const scoreMonthAgo = statsEngine.calculateHistoricalScore(logs, 30);
+    
+    const momentum = statsEngine.calculateMomentum(logs);
+    const drifts = statsEngine.detectDrift(logs);
+    const correlations = statsEngine.calculateCorrelations(logs);
+    
+    const heatmap = logs.map(l => ({
+      date: new Date(l.date).toISOString().split('T')[0],
+      score: statsEngine.calculateRealityScore([l]), // Approximated single day score
+      focus: l.studyHours + l.codingHours
+    }));
+
     res.status(200).json({ 
       success: true, 
       data: {
         averages: { studyHours: avgStudy, mood: avgMood },
         trends: logs,
-        charts: { areaData, pieData, barData }
+        charts: { areaData, pieData, barData },
+        realityScore: {
+          current: currentScore,
+          weekChange: currentScore - scoreWeekAgo,
+          monthChange: currentScore - scoreMonthAgo
+        },
+        momentum,
+        drifts,
+        correlations,
+        heatmap
       }
     });
   } catch (error) {

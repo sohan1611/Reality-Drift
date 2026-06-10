@@ -75,7 +75,8 @@ model AiInsight {
   date        DateTime @db.Date 
   logHash     String   
   coachData   Json?    
-  simData     Json?    
+  simData     Json?
+  reportData  Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

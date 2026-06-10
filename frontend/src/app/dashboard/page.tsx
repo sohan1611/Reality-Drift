@@ -2,15 +2,13 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
-} from "recharts";
-import { TrendingUp, Users, Target, Zap, Plus, BrainCircuit, Lightbulb, Activity, ArrowRight, Play, AlertCircle, CheckCircle2, MinusCircle, Clock } from "lucide-react";
+  TrendingUp, Users, Target, Zap, Plus, BrainCircuit, Lightbulb, Activity, ArrowRight, Play, AlertCircle, CheckCircle2, MinusCircle, Clock, TrendingDown, RefreshCcw, FileText
+} from "lucide-react";
 import LogModal from "@/components/LogModal";
 import toast from "react-hot-toast";
 
 import { getAnalytics } from "@/services/analytics";
-import { runSimulation, getPatterns, getCoaching } from "@/services/ai";
+import { runSimulation, getCoaching, getWeeklyReport } from "@/services/ai";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -20,21 +18,18 @@ export default function Dashboard() {
   const [isPastLog, setIsPastLog] = useState(false);
   
   const [analyticsData, setAnalyticsData] = useState<any>(null);
-  const [patterns, setPatterns] = useState<string[]>([]);
   
   const [coaching, setCoaching] = useState<any>(null);
   const [isCoachingLoading, setIsCoachingLoading] = useState(false);
+
+  const [report, setReport] = useState<any>(null);
+  const [isReportLoading, setIsReportLoading] = useState(false);
 
   const fetchData = async () => {
     try {
       const data = await getAnalytics();
       if (data && data.success) {
         setAnalyticsData(data.data);
-      }
-      
-      const patternData = await getPatterns();
-      if (patternData && patternData.success) {
-        setPatterns(patternData.data);
       }
     } catch (e) {
       console.error(e);
@@ -57,11 +52,7 @@ export default function Dashboard() {
       const data = await runSimulation();
       if (data && data.success) {
         setSimulationResult(data.data);
-        if (data.data.bestCase?.includes('Unable to simulate')) {
-          toast.error("AI engine is currently offline. Showing fallback.");
-        } else {
-          toast.success("Simulation complete.");
-        }
+        toast.success("Simulation complete.");
       } else {
         toast.error(data?.error || "Simulation failed to execute.");
       }
@@ -77,11 +68,7 @@ export default function Dashboard() {
       const coachData = await getCoaching();
       if (coachData && coachData.success) {
         setCoaching(coachData.data);
-        if (coachData.data.summary?.includes('AI systems are currently analyzing')) {
-          toast.error("AI engine is currently offline. Showing fallback.");
-        } else {
-          toast.success("Insights generated successfully.");
-        }
+        toast.success("Insights generated successfully.");
       } else {
         toast.error(coachData?.error || "Failed to generate AI insights.");
       }
@@ -91,11 +78,28 @@ export default function Dashboard() {
     setIsCoachingLoading(false);
   };
 
-  const areaData = analyticsData?.charts?.areaData || [];
-  const barData = analyticsData?.charts?.barData || [];
-  const totalLogs = analyticsData?.trends?.length || 0;
+  const handleGenerateReport = async () => {
+    setIsReportLoading(true);
+    try {
+      const reportData = await getWeeklyReport();
+      if (reportData && reportData.success) {
+        setReport(reportData.data);
+        toast.success("Weekly report generated.");
+      } else {
+        toast.error("Failed to generate report.");
+      }
+    } catch(e) {
+      toast.error("Error generating report.");
+    }
+    setIsReportLoading(false);
+  };
+
+  const realityScore = analyticsData?.realityScore || { current: 0, weekChange: 0, monthChange: 0 };
+  const momentum = analyticsData?.momentum || { status: 'Stable ➖', changes: { focus: 0, mood: 0, consistency: 0 } };
+  const drifts = analyticsData?.drifts || [];
+  const correlations = analyticsData?.correlations || [];
   const avgStudy = analyticsData?.averages?.studyHours || 0;
-  const avgMood = analyticsData?.averages?.mood || 0;
+  const totalLogs = analyticsData?.trends?.length || 0;
 
   return (
     <div className="space-y-8 pb-16 max-w-7xl mx-auto">
@@ -128,42 +132,55 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Row 1: KPI Cards */}
+      {/* 1 & 2: KPI Cards (Score & Momentum prioritized) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Entries" value={totalLogs} icon={Target} color="text-indigo-400" />
-        <StatCard title="Daily Focus Avg" value={(avgStudy).toFixed(1) + 'h'} icon={TrendingUp} color="text-blue-400" />
-        <StatCard title="Mood Index" value={(avgMood).toFixed(1) + '/10'} icon={Zap} color="text-violet-400" />
-        <StatCard title="Burnout Risk" value={avgStudy > 8 ? 'High' : 'Low'} icon={Activity} color={avgStudy > 8 ? 'text-amber-500' : 'text-emerald-500'} />
+        <StatCard 
+          title="Reality Score" 
+          value={realityScore.current} 
+          subtitle={realityScore.weekChange > 0 ? `+${realityScore.weekChange} this week` : `${realityScore.weekChange} this week`}
+          icon={Target} 
+          color={realityScore.current >= 70 ? "text-emerald-400" : realityScore.current >= 40 ? "text-amber-400" : "text-red-400"} 
+        />
+        <StatCard 
+          title="Momentum" 
+          value={momentum.status.replace(/[^a-zA-Z]/g, '')} 
+          subtitle={momentum.status}
+          icon={momentum.status.includes('Rising') ? TrendingUp : momentum.status.includes('Falling') ? TrendingDown : Activity} 
+          color={momentum.status.includes('Rising') ? "text-blue-400" : momentum.status.includes('Falling') ? "text-amber-400" : "text-gray-400"} 
+        />
+        <StatCard title="Total Entries" value={totalLogs} subtitle="Consistent logs" icon={Users} color="text-indigo-400" />
+        <StatCard title="Daily Focus Avg" value={(avgStudy).toFixed(1) + 'h'} subtitle="Last 30 days" icon={Zap} color="text-violet-400" />
       </div>
 
-      {/* Row 2: AI Command Center */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        
-        {/* Pattern Recognition (takes 2 columns) */}
-        <div className="lg:col-span-2 glass-panel p-6 rounded-xl premium-border flex flex-col h-[400px]">
-          <h3 className="text-sm font-semibold tracking-wide text-white/70 uppercase mb-5 flex items-center gap-2">
-            <BrainCircuit className="w-4 h-4 text-indigo-400" /> Patterns
-          </h3>
-          <div className="space-y-3 flex-1 overflow-y-auto scrollbar-hide pr-2">
-            {patterns.length > 0 ? patterns.map((p, i) => (
-              <div key={i} className="p-4 bg-white/[0.02] rounded-lg border border-white/[0.04] flex items-start gap-3 hover:bg-white/[0.04] transition-colors">
-                <ArrowRight className="w-4 h-4 text-white/30 mt-0.5 shrink-0" />
-                <p className="text-sm text-white/60 leading-relaxed font-medium">{p}</p>
+      {/* 3. Drift Detection Alert Panel */}
+      {drifts.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <h3 className="text-sm font-semibold tracking-wide text-white/70 uppercase">Drift Detection</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {drifts.map((drift: any, i: number) => (
+              <div key={i} className={`p-4 rounded-xl border flex items-start gap-4 ${drift.direction === 'positive' ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
+                <div className={`mt-0.5 shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${drift.direction === 'positive' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+                  {drift.direction === 'positive' ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                </div>
+                <div>
+                  <h4 className={`text-sm font-semibold ${drift.direction === 'positive' ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {drift.direction === 'positive' ? 'Positive Ascent' : 'Negative Drift'} Detected
+                  </h4>
+                  <p className="text-sm text-white/70 mt-1">{drift.message}</p>
+                </div>
               </div>
-            )) : (
-              <div className="h-full flex flex-col items-center justify-center text-white/30 space-y-3">
-                <Clock className="w-6 h-6 opacity-50" />
-                <p className="text-sm font-medium">Awaiting sufficient data.</p>
-              </div>
-            )}
+            ))}
           </div>
         </div>
+      )}
 
+      {/* 4 & 6. AI Coach and Correlations */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* AI Executive Coach (takes 3 columns) */}
-        <div className="lg:col-span-3 glass-panel rounded-xl premium-border flex flex-col h-[400px]">
+        <div className="lg:col-span-3 glass-panel rounded-xl premium-border flex flex-col min-h-[400px]">
           <div className="p-6 border-b border-white/[0.04] flex justify-between items-center bg-white/[0.01]">
             <h3 className="text-sm font-semibold tracking-wide text-white/70 uppercase flex items-center gap-2">
-              <Lightbulb className="w-4 h-4 text-blue-400" /> Your Coach
+              <Lightbulb className="w-4 h-4 text-blue-400" /> Executive Coach
             </h3>
             <button 
               onClick={handleGenerateInsights}
@@ -173,26 +190,13 @@ export default function Dashboard() {
               }`}
             >
               {isCoachingLoading ? (
-                <>
-                  <div className="w-3.5 h-3.5 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
-                  Analyzing
-                </>
-              ) : 'View Insights'}
+                <><RefreshCcw className="w-3.5 h-3.5 animate-spin" /> Analyzing</>
+              ) : 'Update Coaching'}
             </button>
           </div>
 
           <div className="flex-1 p-6 overflow-y-auto scrollbar-hide">
-            {isCoachingLoading ? (
-              <div className="space-y-4">
-                <div className="h-4 w-1/3 rounded skeleton-loader" />
-                <div className="h-4 w-full rounded skeleton-loader" />
-                <div className="h-4 w-5/6 rounded skeleton-loader" />
-                <div className="pt-4 space-y-3">
-                  <div className="h-3 w-3/4 rounded skeleton-loader" />
-                  <div className="h-3 w-4/5 rounded skeleton-loader" />
-                </div>
-              </div>
-            ) : coaching ? (
+            {coaching ? (
               <div className="space-y-6">
                 <div className="flex gap-3">
                   <div className={`px-3 py-1.5 rounded-md text-xs font-semibold border ${coaching.productivityTrend === 'improving' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : coaching.productivityTrend === 'declining' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-white/5 text-white/60 border-white/10'}`}>
@@ -223,24 +227,49 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-white/30 space-y-4">
-                <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
-                  <Lightbulb className="w-5 h-5 text-white/20" />
+                <Lightbulb className="w-8 h-8 opacity-20" />
+                <p className="text-sm font-medium">Request insights to analyze your data context.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Correlation Insights (takes 2 columns) */}
+        <div className="lg:col-span-2 glass-panel p-6 rounded-xl premium-border flex flex-col h-[400px]">
+          <h3 className="text-sm font-semibold tracking-wide text-white/70 uppercase mb-5 flex items-center gap-2">
+            <BrainCircuit className="w-4 h-4 text-indigo-400" /> Correlated Habits
+          </h3>
+          <div className="space-y-3 flex-1 overflow-y-auto scrollbar-hide pr-2">
+            {correlations.length > 0 ? correlations.map((c: any, i: number) => (
+              <div key={i} className="p-4 bg-white/[0.02] rounded-lg border border-white/[0.04] flex flex-col gap-2 hover:bg-white/[0.04] transition-colors">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-semibold text-white/90">{c.cause}</span>
+                  <ArrowRight className="w-4 h-4 text-white/30" />
+                  <span className={`text-sm font-bold ${c.impact === 'positive' ? 'text-emerald-400' : 'text-amber-400'}`}>{c.effect}</span>
                 </div>
-                <p className="text-sm font-medium">Request insights to analyze your data.</p>
+                <div className="flex justify-between text-xs text-white/40 mt-1">
+                  <span>Confidence: <span className="text-white/60">{c.confidence}</span></span>
+                  <span>n={c.sampleSize}</span>
+                </div>
+              </div>
+            )) : (
+              <div className="h-full flex flex-col items-center justify-center text-white/30 space-y-3">
+                <Activity className="w-6 h-6 opacity-50" />
+                <p className="text-sm font-medium">Log more data to uncover correlations.</p>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Row 3: Future Scenarios Simulation */}
+      {/* 5. 30-Day Outlook */}
       <div className="glass-panel rounded-xl premium-border overflow-hidden">
         <div className="p-6 border-b border-white/[0.04] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/[0.01]">
           <div>
             <h3 className="text-sm font-semibold tracking-wide text-white/70 uppercase flex items-center gap-2">
               <Play className="w-4 h-4 text-violet-400" /> 30-Day Outlook
             </h3>
-            <p className="text-xs text-white/40 mt-1">30-day trajectory modeling based on compounding habits.</p>
+            <p className="text-xs text-white/40 mt-1">Trajectory modeling based on your current momentum.</p>
           </div>
           <button 
             onClick={handleSimulate}
@@ -249,16 +278,14 @@ export default function Dashboard() {
               isSyncing ? 'bg-white/5 text-white/30 cursor-not-allowed' : 'bg-white/10 hover:bg-white/15 text-white'
             }`}
           >
-            {isSyncing ? 'Analyzing...' : 'Generate Outlook'}
+            {isSyncing ? <RefreshCcw className="w-4 h-4 animate-spin" /> : 'Run Simulation'}
           </button>
         </div>
 
         <div className="p-6">
           {simulationResult ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
-              {/* Desktop timeline line */}
               <div className="hidden md:block absolute top-6 left-10 right-10 h-0.5 bg-white/5 z-0" />
-              
               <div className="relative z-10 flex flex-col gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-6 h-6 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center shrink-0">
@@ -304,70 +331,68 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Row 4: Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="glass-panel rounded-xl p-6 premium-border flex flex-col h-[350px]">
-          <h3 className="text-sm font-semibold tracking-wide text-white/70 uppercase mb-6">Focus Trajectory (14 Days)</h3>
-          <div className="flex-1">
-            {areaData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={areaData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorStudy" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="colorCode" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.3)', fontSize: 11}} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.3)', fontSize: 11}} dx={-10} />
-                  <Tooltip contentStyle={{ backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', fontSize: '12px' }} />
-                  <Area type="monotone" dataKey="study" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorStudy)" />
-                  <Area type="monotone" dataKey="coding" stroke="#8b5cf6" strokeWidth={2} fillOpacity={1} fill="url(#colorCode)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-               <div className="h-full flex items-center justify-center text-white/30 text-sm">Awaiting trajectory data.</div>
-            )}
+      {/* 7. Weekly Report */}
+      <div className="glass-panel rounded-xl premium-border overflow-hidden">
+        <div className="p-6 border-b border-white/[0.04] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/[0.01]">
+          <div>
+            <h3 className="text-sm font-semibold tracking-wide text-white/70 uppercase flex items-center gap-2">
+              <FileText className="w-4 h-4 text-pink-400" /> Weekly Synthesis
+            </h3>
+            <p className="text-xs text-white/40 mt-1">High-level summary of your week's core metrics.</p>
           </div>
+          <button 
+            onClick={handleGenerateReport}
+            disabled={isReportLoading}
+            className={`px-5 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+              isReportLoading ? 'bg-white/5 text-white/30 cursor-not-allowed' : 'bg-pink-600/10 hover:bg-pink-600/20 text-pink-400 border border-pink-600/20'
+            }`}
+          >
+            {isReportLoading ? <RefreshCcw className="w-4 h-4 animate-spin" /> : 'Fetch Report'}
+          </button>
         </div>
 
-        <div className="glass-panel rounded-xl p-6 premium-border flex flex-col h-[350px]">
-          <h3 className="text-sm font-semibold tracking-wide text-white/70 uppercase mb-6">Mood vs Productivity</h3>
-          <div className="flex-1">
-            {barData.length > 0 ? (
-               <ResponsiveContainer width="100%" height="100%">
-                 <BarChart data={barData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.3)', fontSize: 11}} dy={10} />
-                   <YAxis axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.3)', fontSize: 11}} dx={-10} />
-                   <Tooltip cursor={{fill: 'rgba(255,255,255,0.02)'}} contentStyle={{ backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', fontSize: '12px' }} />
-                   <Bar dataKey="mood" fill="#6366f1" radius={[4, 4, 0, 0]} name="Mood Index" opacity={0.8} />
-                   <Bar dataKey="productivity" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Focus Hours" opacity={0.8} />
-                 </BarChart>
-               </ResponsiveContainer>
-            ) : (
-               <div className="h-full flex items-center justify-center text-white/30 text-sm">Awaiting correlation data.</div>
-            )}
-          </div>
+        <div className="p-6">
+          {report ? (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-5 rounded-lg bg-emerald-500/[0.03] border border-emerald-500/20">
+                  <h4 className="text-xs font-semibold text-emerald-400 uppercase tracking-widest mb-2">Biggest Win</h4>
+                  <p className="text-sm text-white/80 leading-relaxed">{report.biggestWin}</p>
+                </div>
+                <div className="p-5 rounded-lg bg-amber-500/[0.03] border border-amber-500/20">
+                  <h4 className="text-xs font-semibold text-amber-400 uppercase tracking-widest mb-2">Biggest Risk</h4>
+                  <p className="text-sm text-white/80 leading-relaxed">{report.biggestRisk}</p>
+                </div>
+              </div>
+              <div className="p-5 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+                <p className="text-base text-white/70 leading-relaxed font-medium">{report.narrative}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="py-12 flex flex-col items-center justify-center text-white/30 space-y-3 border border-dashed border-white/10 rounded-lg">
+              <FileText className="w-6 h-6 opacity-40" />
+              <p className="text-sm font-medium">No report generated for this week yet.</p>
+            </div>
+          )}
         </div>
       </div>
+
     </div>
   );
 }
 
-function StatCard({ title, value, icon: Icon, color }: any) {
+function StatCard({ title, value, subtitle, icon: Icon, color }: any) {
   return (
-    <div className="glass-panel p-5 rounded-xl premium-border flex flex-col justify-between h-28 hover:bg-white/[0.02] transition-colors">
-      <div className="flex justify-between items-start">
-        <p className="text-xs font-semibold text-white/50 uppercase tracking-wider truncate">{title}</p>
-        <Icon className={`w-4 h-4 ${color}`} />
+    <div className="glass-panel p-5 rounded-xl premium-border flex flex-col justify-between h-32 hover:bg-white/[0.02] transition-colors relative overflow-hidden">
+      <div className="flex justify-between items-start relative z-10">
+        <p className="text-xs font-semibold text-white/50 uppercase tracking-wider truncate pr-2">{title}</p>
+        <Icon className={`w-4 h-4 ${color} shrink-0`} />
       </div>
-      <h4 className="text-2xl font-bold tracking-tight text-white/90">{value}</h4>
+      <div className="relative z-10">
+        <h4 className="text-3xl font-bold tracking-tight text-white/90 mb-1">{value}</h4>
+        {subtitle && <p className="text-xs text-white/40">{subtitle}</p>}
+      </div>
+      <div className={`absolute -bottom-4 -right-4 w-16 h-16 rounded-full opacity-10 blur-xl bg-current ${color}`} />
     </div>
   );
 }

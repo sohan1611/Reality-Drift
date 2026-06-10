@@ -64,10 +64,20 @@ exports.analyzeMetrics = (logs) => {
   };
 };
 
-exports.buildCoachingPrompt = (logs, metrics) => {
+exports.buildCoachingPrompt = (logs, metrics, historicalContext) => {
+  const contextStr = historicalContext ? `
+--- HISTORICAL CONTEXT (LAST 4 WEEKS) ---
+Trend Summary: ${historicalContext.momentum.status} (Focus: ${historicalContext.momentum.changes.focus}%, Mood: ${historicalContext.momentum.changes.mood}%)
+Major Drifts: ${historicalContext.drifts.map(d => `${d.direction === 'positive' ? 'Improvement' : 'Regression'} in ${d.category}`).join(', ') || 'None'}
+Previous Coaching Themes: ${historicalContext.previousThemes.join(' | ') || 'None'}
+--- END HISTORICAL CONTEXT ---
+` : '';
+
   return `
 You are an elite productivity AI coach.
 You MUST provide highly specific, actionable insights based ONLY on the data below. Do not use generic filler.
+
+${contextStr}
 
 --- USER DATA ---
 Total Logs Analyzed: ${metrics.totalLogs} days
@@ -122,6 +132,27 @@ Return a valid JSON object with EXACTLY this structure:
   "bestCase": "What happens in 30 days if they incrementally improve their specific weak points? (2 sentences max)",
   "worstCase": "What is the specific compounding consequence if their lowest-performing days become the norm? (2 sentences max)",
   "currentPath": "The mathematical 30-day outcome if they maintain their exact current averages. (2 sentences max)"
+}
+`;
+};
+
+exports.buildReportPrompt = (statsSummary) => {
+  return `
+You are an advanced AI performance analyst. Based on the statistical analytics provided below, generate a short, natural-language weekly synthesis.
+Identify the "Biggest Win" and the "Biggest Risk" strictly based on the data. Do not invent insights that aren't backed by numbers.
+
+--- WEEKLY STATS ---
+Reality Score: ${statsSummary.currentScore} (Change: ${statsSummary.weekChange > 0 ? '+' : ''}${statsSummary.weekChange})
+Momentum: ${statsSummary.momentum.status}
+Drifts Detected: ${JSON.stringify(statsSummary.drifts)}
+Strongest Correlations: ${JSON.stringify(statsSummary.correlations)}
+--- END STATS ---
+
+Return a valid JSON object with EXACTLY this structure:
+{
+  "biggestWin": "A 1-sentence data-backed description of their best improvement.",
+  "biggestRisk": "A 1-sentence data-backed warning of their biggest regression or risk.",
+  "narrative": "A 2-sentence high-level synthesis of their overall week."
 }
 `;
 };
