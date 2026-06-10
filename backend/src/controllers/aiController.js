@@ -124,6 +124,17 @@ exports.generateCoach = async (req, res) => {
         update: { logHash: hash, coachData: advice },
         create: { userId, date: today, logHash: hash, coachData: advice }
       });
+
+      const userPref = await prisma.user.findUnique({ where: { id: userId }, select: { coachNotificationsEnabled: true } });
+      if (userPref?.coachNotificationsEnabled) {
+        const title = 'New Coach Insight Available';
+        const exists = await prisma.notification.findFirst({ where: { userId, title, createdAt: { gte: today } } });
+        if (!exists) {
+          await prisma.notification.create({
+            data: { userId, title, message: 'Your AI Coach has analyzed your recent logs.', category: 'Insights' }
+          });
+        }
+      }
     }
 
     res.status(200).json({ success: true, data: advice });
@@ -183,6 +194,17 @@ exports.generateWeeklyReport = async (req, res) => {
       update: { reportData: report },
       create: { userId, date: weekStart, logHash: "weekly", reportData: report }
     });
+
+    const userPref = await prisma.user.findUnique({ where: { id: userId }, select: { weeklyReportsEnabled: true } });
+    if (userPref?.weeklyReportsEnabled) {
+      const title = 'Weekly Reality Report Ready';
+      const exists = await prisma.notification.findFirst({ where: { userId, title, createdAt: { gte: weekStart } } });
+      if (!exists) {
+        await prisma.notification.create({
+          data: { userId, title, message: 'Your latest weekly summary and trend analysis are available.', category: 'Insights' }
+        });
+      }
+    }
 
     res.status(200).json({ success: true, data: report });
   } catch (error) {

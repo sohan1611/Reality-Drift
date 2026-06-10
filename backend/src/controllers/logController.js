@@ -160,6 +160,71 @@ exports.getAnalytics = async (req, res) => {
       focus: l.studyHours + l.codingHours
     }));
 
+    // --- Milestone Alerts ---
+    const userPref = await prisma.user.findUnique({ where: { id: req.user.userId }, select: { coachNotificationsEnabled: true } });
+    if (userPref?.coachNotificationsEnabled) {
+      const notifyMilestone = async (title, message) => {
+        const exists = await prisma.notification.findFirst({ where: { userId: req.user.userId, title } });
+        if (!exists) {
+          await prisma.notification.create({ data: { userId: req.user.userId, title, message, category: 'Progress' } });
+        }
+      };
+
+      // Calculate True Streak
+      let streak = 0;
+      const sortedDates = [...new Set(logs.map(l => new Date(l.date).toISOString().split('T')[0]))].sort((a,b) => new Date(b) - new Date(a));
+      const todayStr = new Date().toISOString().split('T')[0];
+      let checkDate = new Date(todayStr);
+      for (const d of sortedDates) {
+        if (d === checkDate.toISOString().split('T')[0]) {
+          streak++;
+          checkDate.setDate(checkDate.getDate() - 1);
+        } else if (d === todayStr) {
+          // It's fine if they haven't logged today yet, streak might continue from yesterday
+          continue;
+        } else if (new Date(d) > checkDate) {
+           continue;
+        } else {
+          break; // Streak broken
+        }
+      }
+      // If today not logged, check yesterday
+      if (streak === 0 && sortedDates.length > 0) {
+        let yesterday = new Date(todayStr);
+        yesterday.setDate(yesterday.getDate() - 1);
+        let yCheck = new Date(yesterday);
+        for (const d of sortedDates) {
+          if (d === yCheck.toISOString().split('T')[0]) {
+            streak++;
+            yCheck.setDate(yCheck.getDate() - 1);
+          } else {
+            break;
+          }
+        }
+      }
+
+      if (streak >= 100) await notifyMilestone('100 Day Streak', 'Legendary consistency! 100 days of reality logged.');
+      else if (streak >= 30) await notifyMilestone('30 Day Streak', 'Incredible focus! You reached a 30-day logging streak.');
+      else if (streak >= 14) await notifyMilestone('14 Day Streak', 'Two weeks of solid logging. Keep the momentum going!');
+      else if (streak >= 7) await notifyMilestone('7 Day Streak', 'You logged for 7 days in a row. Great consistency!');
+      else if (streak >= 3) await notifyMilestone('3 Day Streak', 'You are on a 3-day logging streak!');
+
+      // Score Milestones
+      if (currentScore >= 90) await notifyMilestone('Reality Score crossed 90', 'Your Reality Score is elite! Keep up the outstanding balance.');
+      else if (currentScore >= 80) await notifyMilestone('Reality Score crossed 80', 'Your Reality Score is strong! Excellent focus and well-being.');
+      else if (currentScore >= 70) await notifyMilestone('Reality Score crossed 70', 'Your Reality Score is healthy! You are on a good path.');
+
+      // Momentum Changes
+      if (momentum.status.includes('Rising')) await notifyMilestone('Momentum Shift: Rising', 'Your momentum has shifted to Rising! Great upward trend.');
+      else if (momentum.status.includes('Falling')) await notifyMilestone('Momentum Shift: Falling', 'Your momentum has shifted to Falling. Time to recalibrate.');
+
+      // Forecast Accuracy Milestones
+      const simHistory = await prisma.aiInsight.findMany({ where: { userId: req.user.userId, simData: { not: null } }, orderBy: { date: 'desc' } });
+      const forecastEvaluation = statsEngine.evaluateForecasts(simHistory, logs);
+      if (forecastEvaluation.overallAccuracy >= 90) await notifyMilestone('Forecast Accuracy exceeded 90%', 'The AI simulator is highly synchronized with your reality.');
+      else if (forecastEvaluation.overallAccuracy >= 80) await notifyMilestone('Forecast Accuracy exceeded 80%', 'The AI simulator is providing accurate projections.');
+    }
+
     res.status(200).json({ 
       success: true, 
       data: {
@@ -178,33 +243,54 @@ exports.getAnalytics = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ success: false, error: 'Failed to fetch analytics' });
   }
 };
 
 exports.getNotifications = async (req, res) => {
   try {
-    const logs = await prisma.dailyLog.findMany({
+    const notifications = await prisma.notification.findMany({
       where: { userId: req.user.userId },
-      orderBy: { date: 'desc' },
-      take: 7
+      orderBy: { createdAt: 'desc' },
+      take: 50
     });
-
-    const notifications = [
-      { id: 1, type: 'info', message: 'System initialized and neural link established.', time: 'Just now' }
-    ];
-
-    if (logs.length > 0) {
-      notifications.push({ id: 2, type: 'success', message: 'Last log synced successfully.', time: new Date(logs[0].createdAt).toLocaleTimeString() });
-      const recentStudy = logs[0].studyHours + logs[0].codingHours;
-      if (recentStudy > 8) {
-        notifications.push({ id: 3, type: 'warning', message: 'High cognitive load detected. Ensure adequate sleep.', time: '1 hr ago' });
-      }
-    }
 
     res.status(200).json({ success: true, data: notifications });
   } catch (error) {
+    console.error('Fetch Notifications Error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch notifications' });
+  }
+};
+
+exports.markNotificationRead = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.notification.findUnique({ where: { id } });
+    if (!existing || existing.userId !== req.user.userId) {
+      return res.status(403).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const updated = await prisma.notification.update({
+      where: { id },
+      data: { isRead: true }
+    });
+
+    res.status(200).json({ success: true, data: updated });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to mark notification as read' });
+  }
+};
+
+exports.markAllNotificationsRead = async (req, res) => {
+  try {
+    await prisma.notification.updateMany({
+      where: { userId: req.user.userId, isRead: false },
+      data: { isRead: true }
+    });
+    res.status(200).json({ success: true, message: 'All notifications marked as read' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to mark notifications as read' });
   }
 };
 

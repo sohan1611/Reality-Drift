@@ -5,14 +5,14 @@ import { Search, Bell, User, LogOut, Settings as SettingsIcon, Shield } from "lu
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import Link from "next/link";
-import { getNotifications, searchLogs } from "@/services/logs";
+import { searchLogs } from "@/services/logs";
+import { getNotifications } from "@/services/notifications";
 import { getMe } from "@/services/user";
 
 export default function Navbar() {
   const router = useRouter();
-  const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [userName, setUserName] = useState("User");
@@ -23,9 +23,6 @@ export default function Navbar() {
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
-        setShowNotifications(false);
-      }
       if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
         setShowProfile(false);
       }
@@ -50,11 +47,16 @@ export default function Navbar() {
     }
   }, []);
 
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
   const fetchNotifications = async () => {
     try {
       const data = await getNotifications();
       if (data && data.success) {
-        setNotifications(data.data);
+        const unread = data.data.filter((n: any) => !n.isRead).length;
+        setUnreadCount(unread);
       }
     } catch (err) {
       console.error(err);
@@ -62,9 +64,7 @@ export default function Navbar() {
   };
 
   const handleNotificationClick = () => {
-    if (!showNotifications) fetchNotifications();
-    setShowNotifications(!showNotifications);
-    setShowProfile(false);
+    router.push("/notifications");
   };
 
   const handleSearchSubmit = async (e: React.FormEvent) => {
@@ -107,36 +107,18 @@ export default function Navbar() {
 
       {/* Right: Actions */}
       <div className="flex items-center gap-3 md:gap-6">
-        {/* Notifications Dropdown */}
-        <div className="relative" ref={notifRef}>
-          <button 
-            onClick={handleNotificationClick}
-            className="relative p-2 md:p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-all glow-border"
-          >
-            <Bell className="w-4 h-4 md:w-5 md:h-5" />
-            <span className="absolute top-1.5 md:top-2 right-1.5 md:right-2 w-2 h-2 bg-accent rounded-full shadow-[0_0_8px_rgba(255,0,122,0.8)]"></span>
-          </button>
-          
-          {showNotifications && (
-            <div className="absolute right-0 mt-3 w-72 md:w-80 bg-[#1a1a2e] border border-white/10 rounded-2xl shadow-2xl py-2 animate-in fade-in slide-in-from-top-2">
-              <div className="px-4 py-2 border-b border-white/5">
-                <h3 className="font-semibold text-white text-sm md:text-base">System Alerts</h3>
-              </div>
-              <div className="max-h-64 overflow-y-auto p-2 space-y-1">
-                {notifications.length > 0 ? (
-                  notifications.map(n => (
-                    <div key={n.id} className="p-3 hover:bg-white/5 rounded-xl transition-colors cursor-default">
-                      <p className={`text-sm font-medium ${n.type === 'warning' ? 'text-red-400' : 'text-blue-200'}`}>{n.message}</p>
-                      <p className="text-xs text-gray-500 mt-1">{n.time}</p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="p-4 text-center text-sm text-gray-400">Loading alerts...</div>
-                )}
-              </div>
-            </div>
+        {/* Notifications */}
+        <button 
+          onClick={handleNotificationClick}
+          className="relative p-2 md:p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-all glow-border"
+        >
+          <Bell className="w-4 h-4 md:w-5 md:h-5" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 md:w-5 md:h-5 flex items-center justify-center bg-primary text-[9px] md:text-[10px] font-bold text-white rounded-full shadow-[0_0_8px_rgba(138,43,226,0.8)]">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
           )}
-        </div>
+        </button>
 
         {/* Profile Dropdown */}
         <div className="relative" ref={profileRef}>

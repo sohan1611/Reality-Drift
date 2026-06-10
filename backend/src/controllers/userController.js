@@ -7,13 +7,35 @@ exports.getMe = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId },
-      select: { name: true, email: true, createdAt: true }
+      select: {
+        id: true, email: true, name: true, googleId: true, createdAt: true,
+        weeklyReportsEnabled: true, coachNotificationsEnabled: true
+      }
     });
-    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
     res.status(200).json({ success: true, data: user });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, error: 'Failed to fetch user' });
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
+exports.updatePreferences = async (req, res) => {
+  try {
+    const { weeklyReportsEnabled, coachNotificationsEnabled } = req.body;
+    const user = await prisma.user.update({
+      where: { id: req.user.userId },
+      data: {
+        ...(weeklyReportsEnabled !== undefined && { weeklyReportsEnabled }),
+        ...(coachNotificationsEnabled !== undefined && { coachNotificationsEnabled })
+      },
+      select: { weeklyReportsEnabled: true, coachNotificationsEnabled: true }
+    });
+    res.status(200).json({ success: true, data: user });
+  } catch (error) {
+    console.error('Update Preferences Error:', error);
+    res.status(500).json({ success: false, error: 'Failed to update preferences' });
   }
 };
 

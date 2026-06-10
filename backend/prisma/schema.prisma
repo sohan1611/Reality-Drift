@@ -16,9 +16,14 @@ model User {
   googleId  String?    @unique
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+  
+  weeklyReportsEnabled      Boolean @default(true)
+  coachNotificationsEnabled Boolean @default(true)
+
   logs      DailyLog[]
   projects  Project[]
   aiInsights AiInsight[]
+  notifications Notification[]
 }
 
 model DailyLog {
@@ -83,4 +88,15 @@ model AiInsight {
   updatedAt   DateTime @updatedAt
 
   @@unique([userId, date])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  String   // 'Insights', 'Progress', 'System'
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
 }

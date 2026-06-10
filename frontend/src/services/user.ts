@@ -7,3 +7,7 @@ export const updatePassword = (data: any) => apiFetch('/user/password', {
 });
 export const exportData = () => apiFetch('/user/export');
 export const deleteAccount = () => apiFetch('/user', { method: 'DELETE' });
+export const updatePreferences = (data: any) => apiFetch('/user/preferences', {
+  method: 'PUT',
+  body: JSON.stringify(data),
+});

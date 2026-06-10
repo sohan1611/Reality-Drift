@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { getMe, updatePassword, exportData, deleteAccount } from "@/services/user";
+import { getMe, updatePassword, exportData, deleteAccount, updatePreferences } from "@/services/user";
 import { getAnalytics } from "@/services/analytics";
 import toast from "react-hot-toast";
 import { User, Activity, Clock, Zap, LogOut, Download, Trash2, Key, AlertTriangle } from "lucide-react";
@@ -20,6 +20,9 @@ export default function Settings() {
   const [deleteChallenge, setDeleteChallenge] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const [weeklyReportsEnabled, setWeeklyReportsEnabled] = useState(true);
+  const [coachNotificationsEnabled, setCoachNotificationsEnabled] = useState(true);
+
   useEffect(() => {
     const fetchData = async () => {
       if (typeof window === "undefined") return;
@@ -36,7 +39,11 @@ export default function Settings() {
           getAnalytics().catch(() => null)
         ]);
 
-        if (userRes?.success) setUser(userRes.data);
+        if (userRes?.success) {
+          setUser(userRes.data);
+          if (userRes.data.weeklyReportsEnabled !== undefined) setWeeklyReportsEnabled(userRes.data.weeklyReportsEnabled);
+          if (userRes.data.coachNotificationsEnabled !== undefined) setCoachNotificationsEnabled(userRes.data.coachNotificationsEnabled);
+        }
         if (analyticsRes?.success) setAnalytics(analyticsRes.data);
       } catch (err) {
         // Suppress errors
@@ -47,6 +54,28 @@ export default function Settings() {
 
     fetchData();
   }, []);
+
+  const togglePreference = async (key: string, currentValue: boolean) => {
+    const newValue = !currentValue;
+    if (key === 'weeklyReportsEnabled') setWeeklyReportsEnabled(newValue);
+    if (key === 'coachNotificationsEnabled') setCoachNotificationsEnabled(newValue);
+    
+    const toastId = toast.loading("Saving...");
+    try {
+      const res = await updatePreferences({ [key]: newValue });
+      if (res?.success) {
+        toast.success("Saved", { id: toastId });
+      } else {
+        toast.error("Failed to save", { id: toastId });
+        if (key === 'weeklyReportsEnabled') setWeeklyReportsEnabled(currentValue);
+        if (key === 'coachNotificationsEnabled') setCoachNotificationsEnabled(currentValue);
+      }
+    } catch (err) {
+      toast.error("Network error", { id: toastId });
+      if (key === 'weeklyReportsEnabled') setWeeklyReportsEnabled(currentValue);
+      if (key === 'coachNotificationsEnabled') setCoachNotificationsEnabled(currentValue);
+    }
+  };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,29 +234,33 @@ export default function Settings() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-black/20 rounded-2xl border border-white/5 opacity-70">
+              <div className="flex items-center justify-between p-4 bg-black/20 rounded-2xl border border-white/5">
                 <div>
                   <div className="flex items-center gap-3">
                     <p className="font-medium text-white">Weekly Reports</p>
-                    <span className="text-[10px] uppercase tracking-wider bg-white/10 text-white px-2 py-0.5 rounded-full font-semibold">Coming Soon</span>
                   </div>
                   <p className="text-sm text-gray-400 mt-0.5">Receive a weekly summary of your reality drift.</p>
                 </div>
-                <div className="w-12 h-6 bg-gray-600 rounded-full relative">
-                  <div className="absolute left-1 top-1 w-4 h-4 bg-gray-400 rounded-full"></div>
+                <div 
+                  onClick={() => togglePreference('weeklyReportsEnabled', weeklyReportsEnabled)}
+                  className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${weeklyReportsEnabled ? 'bg-primary shadow-[0_0_10px_rgba(138,43,226,0.3)]' : 'bg-gray-600'}`}
+                >
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${weeklyReportsEnabled ? 'right-1' : 'left-1'}`}></div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-black/20 rounded-2xl border border-white/5 opacity-70">
+              <div className="flex items-center justify-between p-4 bg-black/20 rounded-2xl border border-white/5">
                 <div>
                   <div className="flex items-center gap-3">
                     <p className="font-medium text-white">Coach Notifications</p>
-                    <span className="text-[10px] uppercase tracking-wider bg-white/10 text-white px-2 py-0.5 rounded-full font-semibold">Coming Soon</span>
                   </div>
                   <p className="text-sm text-gray-400 mt-0.5">Get timely AI insights directly to your device.</p>
                 </div>
-                <div className="w-12 h-6 bg-gray-600 rounded-full relative">
-                  <div className="absolute left-1 top-1 w-4 h-4 bg-gray-400 rounded-full"></div>
+                <div 
+                  onClick={() => togglePreference('coachNotificationsEnabled', coachNotificationsEnabled)}
+                  className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${coachNotificationsEnabled ? 'bg-primary shadow-[0_0_10px_rgba(138,43,226,0.3)]' : 'bg-gray-600'}`}
+                >
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${coachNotificationsEnabled ? 'right-1' : 'left-1'}`}></div>
                 </div>
               </div>
             </div>
@@ -278,19 +311,19 @@ export default function Settings() {
             </form>
           </div>
 
-          {/* Danger Zone */}
-          <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-red-500/10">
-            <h3 className="text-xl font-bold text-red-400 mb-6">Account Actions</h3>
+          {/* Account Actions */}
+          <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5">
+            <h3 className="text-xl font-bold text-white mb-6">Account Actions</h3>
             
             <div className="space-y-3">
-              <button onClick={handleLogout} className="w-full flex items-center justify-between p-4 bg-black/20 hover:bg-black/40 border border-red-500/20 rounded-2xl transition-colors text-left group">
+              <button onClick={handleLogout} className="w-full flex items-center justify-between p-4 bg-black/20 hover:bg-black/40 border border-white/5 rounded-2xl transition-colors text-left group">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-red-500/10 rounded-lg group-hover:bg-red-500/20 transition-colors">
-                    <LogOut className="w-5 h-5 text-red-400" />
+                  <div className="p-2 bg-white/5 rounded-lg group-hover:bg-white/10 transition-colors">
+                    <LogOut className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
                   </div>
                   <div>
-                    <p className="font-medium text-red-400">Log Out</p>
-                    <p className="text-xs text-red-400/70">Securely end your current session.</p>
+                    <p className="font-medium text-white">Log Out</p>
+                    <p className="text-xs text-gray-400">Securely end your current session.</p>
                   </div>
                 </div>
               </button>
@@ -307,17 +340,38 @@ export default function Settings() {
                 </div>
                 {isExporting ? <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold animate-pulse">Exporting...</span> : null}
               </button>
+            </div>
+          </div>
 
-              <button onClick={() => setIsDeleteModalOpen(true)} className="w-full flex items-center justify-between p-4 bg-black/20 hover:bg-red-500/10 border border-white/5 hover:border-red-500/20 rounded-2xl transition-colors text-left group">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white/5 rounded-lg group-hover:bg-red-500/20 transition-colors">
-                    <Trash2 className="w-5 h-5 text-gray-400 group-hover:text-red-400 transition-colors" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-white group-hover:text-red-400 transition-colors">Delete Account</p>
-                    <p className="text-xs text-gray-400 group-hover:text-red-400/70 transition-colors">Permanently erase all your data.</p>
-                  </div>
-                </div>
+          {/* Danger Zone */}
+          <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-red-500/30 bg-red-500/5 mt-8">
+            <div className="mb-6">
+              <h3 className="text-xl font-bold text-red-400 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5" />
+                Danger Zone
+              </h3>
+              <p className="text-sm text-red-400/80 mt-1">These actions are permanent and cannot be undone.</p>
+            </div>
+            
+            <div className="bg-black/40 border border-red-500/20 rounded-2xl p-5">
+              <div className="mb-4">
+                <p className="font-medium text-white mb-2">Permanently delete your account and all associated data.</p>
+                <p className="text-sm text-gray-400 mb-2">This action removes:</p>
+                <ul className="list-disc list-inside text-sm text-gray-400 space-y-1 mb-4">
+                  <li>Profile</li>
+                  <li>Daily Logs</li>
+                  <li>Projects</li>
+                  <li>AI Insights</li>
+                  <li>Forecast History</li>
+                  <li>Notifications</li>
+                  <li>Preferences</li>
+                </ul>
+                <p className="text-sm font-medium text-red-400">This action cannot be undone.</p>
+              </div>
+              
+              <button onClick={() => setIsDeleteModalOpen(true)} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-red-600/80 hover:bg-red-600 text-white font-medium rounded-xl transition-colors border border-red-500 shadow-lg shadow-red-500/20">
+                <Trash2 className="w-4 h-4" />
+                Delete Account
               </button>
             </div>
           </div>
@@ -333,9 +387,10 @@ export default function Settings() {
               <AlertTriangle className="w-6 h-6 text-red-400" />
             </div>
             <h3 className="text-2xl font-bold text-white mb-2">Delete Account</h3>
-            <p className="text-sm text-gray-400 mb-6 leading-relaxed">
-              This action permanently removes your account, logs, forecasts, insights, and associated data. This action cannot be undone.
-            </p>
+            <div className="text-sm text-gray-400 mb-6 leading-relaxed space-y-4">
+              <p>You are about to permanently delete your Reality Drift account and all associated data.</p>
+              <p className="font-semibold text-red-400">This action cannot be undone.</p>
+            </div>
             
             <div className="mb-8">
               <label className="block text-xs font-medium text-gray-400 mb-2 uppercase tracking-wider">Type DELETE to continue</label>

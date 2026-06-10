@@ -15,6 +15,7 @@ router.post('/auth/google', authController.googleLogin);
 // User Routes (Protected)
 router.get('/user/me', auth, userController.getMe);
 router.put('/user/password', auth, userController.updatePassword);
+router.put('/user/preferences', auth, userController.updatePreferences);
 router.get('/user/export', auth, userController.exportData);
 router.delete('/user', auth, userController.deleteAccount);
 
@@ -28,6 +29,8 @@ router.delete('/log/:id', auth, logController.deleteLog);
 router.get('/analytics', auth, logController.getAnalytics);
 router.get('/patterns', auth, aiController.detectPatterns);
 router.get('/notifications', auth, logController.getNotifications);
+router.patch('/notifications/read-all', auth, logController.markAllNotificationsRead);
+router.patch('/notifications/:id/read', auth, logController.markNotificationRead);
 router.get('/search', auth, logController.searchLogs);
 
 // Projects (Protected)
