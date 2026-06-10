@@ -123,7 +123,7 @@ export default function Navbar() {
         {/* Profile Dropdown */}
         <div className="relative" ref={profileRef}>
           <button 
-            onClick={() => { setShowProfile(!showProfile); setShowNotifications(false); }}
+            onClick={() => { setShowProfile(!showProfile); }}
             className="flex items-center gap-2 md:gap-3 p-1 md:p-1.5 pr-2 md:pr-4 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 transition-all glow-border"
           >
             <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-tr from-secondary to-primary flex items-center justify-center">
