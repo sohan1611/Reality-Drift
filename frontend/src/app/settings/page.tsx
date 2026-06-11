@@ -224,15 +224,7 @@ export default function Settings() {
             </div>
             
             <div className="space-y-6">
-              <div className="flex items-center justify-between p-4 bg-black/20 rounded-2xl border border-white/5">
-                <div>
-                  <p className="font-medium text-white">Dark Mode</p>
-                  <p className="text-sm text-gray-400">Easier on the eyes in low-light environments.</p>
-                </div>
-                <div className="w-12 h-6 bg-primary rounded-full relative cursor-pointer shadow-[0_0_10px_rgba(138,43,226,0.3)]">
-                  <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full"></div>
-                </div>
-              </div>
+
 
               <div className="flex items-center justify-between p-4 bg-black/20 rounded-2xl border border-white/5">
                 <div>
