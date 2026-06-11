@@ -49,7 +49,10 @@ exports.runSimulation = async (req, res) => {
     const simulationResult = await aiService.generateSimulation(logs);
     
     // Only cache if it's a successful generated result
-    if (!simulationResult.bestCase?.text?.includes('Unable to simulate') && !simulationResult.bestCase?.includes('Unable to simulate')) {
+    const isFallbackObj = simulationResult.bestCase?.text?.includes('Unable to simulate');
+    const isFallbackStr = typeof simulationResult.bestCase === 'string' && simulationResult.bestCase.includes('Unable to simulate');
+
+    if (!isFallbackObj && !isFallbackStr) {
       await prisma.aiInsight.upsert({
         where: { userId_date: { userId, date: today } },
         update: { logHash: hash, simData: simulationResult },
@@ -57,10 +60,11 @@ exports.runSimulation = async (req, res) => {
       });
     }
 
+    console.log("[Simulation Serialization] Sending final response");
     res.status(200).json({ success: true, data: { ...simulationResult, forecastEvaluation } });
   } catch (error) {
-    console.error("Simulation Controller Error:", error.message);
-    res.status(500).json({ success: false, error: 'Simulation failed to compute' });
+    console.error("Simulation Controller Error Details:", error);
+    res.status(500).json({ success: false, error: 'Simulation failed to compute', details: error.message });
   }
 };
 

@@ -42,6 +42,7 @@ exports.generateReport = async (statsSummary) => {
 };
 
 exports.generateSimulation = async (logs) => {
+  console.log("[Simulation] Received logs payload:", JSON.stringify(logs).substring(0, 100) + "...");
   if (!logs || logs.length === 0) {
     return fallbackManager.getSimulationEmptyState();
   }
@@ -49,9 +50,13 @@ exports.generateSimulation = async (logs) => {
   try {
     const metrics = promptBuilder.analyzeMetrics(logs);
     const prompt = promptBuilder.buildSimulationPrompt(logs, metrics);
+    console.log("[Simulation] Generated prompt successfully.");
     
     const responseText = await aiProvider.generateWithRetry(prompt, true);
+    console.log("[Simulation] Gemini response received. Length:", responseText.length);
+
     const parsedData = responseParser.parseJsonSafely(responseText);
+    console.log("[Simulation] JSON parsing completed. Success:", !!parsedData);
     
     if (!parsedData) {
       throw new Error("Failed to parse valid JSON from AI response.");
@@ -59,7 +64,7 @@ exports.generateSimulation = async (logs) => {
 
     return parsedData;
   } catch (error) {
-    console.error("Simulation Orchestration Error:", error.message);
+    console.error("Simulation Orchestration Error:", error);
     return fallbackManager.getSimulationFallback(error.message);
   }
 };
