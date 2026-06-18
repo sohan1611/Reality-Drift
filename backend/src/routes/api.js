@@ -15,9 +15,6 @@ const auth = require('../middlewares/authMiddleware');
 router.post('/auth/signup', authController.signup);
 router.post('/auth/login', authController.login);
 router.post('/auth/google', authController.googleLogin);
-router.get('/auth/me', auth, authController.getMe);
-router.delete('/auth/account', auth, authController.deleteAccount);
-router.post('/auth/link-google', auth, authController.linkGoogleAccount);
 
 // User Routes (Protected)
 router.get('/user/me', auth, userController.getMe);
