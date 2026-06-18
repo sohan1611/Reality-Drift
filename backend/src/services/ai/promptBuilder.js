@@ -64,6 +64,23 @@ exports.analyzeMetrics = (logs) => {
   };
 };
 
+exports.buildDecisionReasoningPrompt = (simulationResult, adjustments) => {
+  return `
+You are an advanced predictive AI life simulator. The user is asking "What if I change my habits?"
+Here are the adjustments they want to make:
+${JSON.stringify(adjustments)}
+
+Here is the mathematical simulation based on their past data applied to these adjustments:
+${JSON.stringify(simulationResult)}
+
+Provide a short, direct 2-3 sentence analysis of WHY this specific outcome occurs. Do not use generic motivation. Be analytical.
+Return a valid JSON object with EXACTLY this structure:
+{
+  "reasoning": "The 2-3 sentence explanation."
+}
+`;
+};
+
 exports.buildCoachingPrompt = (logs, metrics, historicalContext) => {
   const contextStr = historicalContext ? `
 --- HISTORICAL CONTEXT (LAST 4 WEEKS) ---

@@ -25,7 +25,7 @@ class AIProvider {
   async generateChatReply(systemPrompt, history, currentMessage) {
     try {
       if (!this.genAI) throw new Error("AIProvider: API key missing.");
-      const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = this.genAI.getGenerativeModel({ model: this.modelChain[0] || "gemini-3.5-flash" });
       
       const chat = model.startChat({
         history: [
