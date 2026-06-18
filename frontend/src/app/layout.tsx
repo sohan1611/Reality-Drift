@@ -3,7 +3,12 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/Navbar";
+import CompanionDrawer from "@/components/CompanionDrawer";
 import { Toaster } from "react-hot-toast";
+import { 
+  LayoutDashboard, LineChart, BrainCircuit, Activity, BookOpen, Settings, 
+  Target, List, PlayCircle, HelpCircle, LogOut, Menu, X, Bell, Info, MessageSquare, Download, Sparkles 
+} from 'lucide-react';
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -29,10 +34,11 @@ export default function RootLayout({
           <Sidebar />
           <div className="flex-1 flex flex-col h-full overflow-hidden w-full min-w-0">
             <Navbar />
-            <main className="flex-1 overflow-y-auto p-3 md:p-6 scrollbar-hide">
+            <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-[#0a0a0f]">
               {children}
             </main>
           </div>
+          <CompanionDrawer />
         </GoogleOAuthProvider>
       </body>
     </html>

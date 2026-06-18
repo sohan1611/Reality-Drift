@@ -22,6 +22,32 @@ class AIProvider {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  async generateChatReply(systemPrompt, history, currentMessage) {
+    try {
+      if (!this.genAI) throw new Error("AIProvider: API key missing.");
+      const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      
+      const chat = model.startChat({
+        history: [
+          { role: 'user', parts: [{ text: systemPrompt + "\n\nAcknowledge these instructions and reply only with 'Ready.' if this is the start of the conversation, otherwise ignore this." }] },
+          { role: 'model', parts: [{ text: 'Ready.' }] },
+          ...history
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 500,
+        }
+      });
+
+      const result = await chat.sendMessage(currentMessage);
+      const response = await result.response;
+      return response.text();
+    } catch (error) {
+      console.error("AI Provider Chat Error:", error);
+      return "I am having trouble connecting to my cognitive cores right now. Let's try again in a moment.";
+    }
+  }
+
   async generateWithRetry(prompt, isJson = true) {
     if (!this.genAI) {
       throw new Error("AIProvider: API key missing.");

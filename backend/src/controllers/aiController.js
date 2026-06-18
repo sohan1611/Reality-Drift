@@ -60,8 +60,48 @@ exports.runSimulation = async (req, res) => {
       });
     }
 
+    // Phase 2.4: Goal Alignment Logic
+    const goals = await prisma.goal.findMany({ where: { userId, status: 'ACTIVE' } });
+    const goalAlignment = goals.map(g => {
+      let currentVal = 0, projectedVal = 0;
+      if (logs.length > 0) {
+        if (g.type === 'FOCUS') {
+          currentVal = logs.reduce((a, l) => a + l.studyHours + l.codingHours, 0) / logs.length;
+          projectedVal = simulationResult.currentPath?.projectedFocus || currentVal;
+        } else if (g.type === 'SLEEP') {
+          currentVal = logs.reduce((a, l) => a + l.sleepHours, 0) / logs.length;
+          projectedVal = simulationResult.currentPath?.projectedSleep || currentVal;
+        } else if (g.type === 'MOOD') {
+          currentVal = logs.reduce((a, l) => a + l.mood, 0) / logs.length;
+          projectedVal = simulationResult.currentPath?.projectedMood || currentVal;
+        }
+      }
+
+      let currentProgress = 0, projectedProgress = 0;
+      if (g.operator === '>=') {
+        currentProgress = Math.min((currentVal / g.target) * 100, 100);
+        projectedProgress = Math.min((projectedVal / g.target) * 100, 100);
+      } else if (g.operator === '<=') {
+        currentProgress = currentVal <= g.target ? 100 : Math.max(0, 100 - ((currentVal - g.target) / g.target) * 100);
+        projectedProgress = projectedVal <= g.target ? 100 : Math.max(0, 100 - ((projectedVal - g.target) / g.target) * 100);
+      }
+
+      let status = 'Stable';
+      if (projectedProgress > currentProgress) status = 'Closer to Goal';
+      else if (projectedProgress < currentProgress) status = 'Moving Away';
+
+      return {
+        id: g.id,
+        type: g.type,
+        title: g.title,
+        currentProgress: Math.round(currentProgress),
+        projectedProgress: Math.round(projectedProgress),
+        status
+      };
+    }).filter(g => g.type === 'FOCUS' || g.type === 'SLEEP' || g.type === 'MOOD'); // Only return goals we can simulate
+
     console.log("[Simulation Serialization] Sending final response");
-    res.status(200).json({ success: true, data: { ...simulationResult, forecastEvaluation } });
+    res.status(200).json({ success: true, data: { ...simulationResult, forecastEvaluation, goalAlignment } });
   } catch (error) {
     console.error("Simulation Controller Error Details:", error);
     res.status(500).json({ success: false, error: 'Simulation failed to compute', details: error.message });
@@ -241,6 +281,54 @@ exports.simulateDecision = async (req, res) => {
     const reasoning = await aiService.generateDecisionReasoning(simulationResult, adjustments);
     
     simulationResult.reasoning = reasoning;
+
+    // Phase 2.4: Goal Alignment Logic
+    const goals = await prisma.goal.findMany({ where: { userId, status: 'ACTIVE' } });
+    const goalAlignment = goals.map(g => {
+      let currentVal = 0, projectedVal = 0;
+      if (logs.length > 0) {
+        const recentLogs = [...logs].reverse().slice(0, 14); // Use last 14 days for baseline
+        if (g.type === 'FOCUS') {
+          currentVal = recentLogs.reduce((a, l) => a + l.studyHours + l.codingHours, 0) / recentLogs.length;
+          // Adjust by the focus adjustment
+          projectedVal = currentVal + (adjustments.focus || 0);
+        } else if (g.type === 'SLEEP') {
+          currentVal = recentLogs.reduce((a, l) => a + l.sleepHours, 0) / recentLogs.length;
+          projectedVal = currentVal + (adjustments.sleep || 0);
+        } else if (g.type === 'SCREEN_TIME') {
+          currentVal = recentLogs.reduce((a, l) => a + l.screenTime, 0) / recentLogs.length;
+          projectedVal = currentVal + (adjustments.screenTime || 0);
+        } else if (g.type === 'EXERCISE') {
+          // Adjustments has exercise per day, but goal is per week
+          currentVal = recentLogs.reduce((a, l) => a + l.exerciseSessions, 0) * (7/recentLogs.length);
+          projectedVal = currentVal + ((adjustments.exercise || 0) * 7);
+        }
+      }
+
+      let currentProgress = 0, projectedProgress = 0;
+      if (g.operator === '>=') {
+        currentProgress = Math.min((currentVal / g.target) * 100, 100);
+        projectedProgress = Math.min((projectedVal / g.target) * 100, 100);
+      } else if (g.operator === '<=') {
+        currentProgress = currentVal <= g.target ? 100 : Math.max(0, 100 - ((currentVal - g.target) / g.target) * 100);
+        projectedProgress = projectedVal <= g.target ? 100 : Math.max(0, 100 - ((projectedVal - g.target) / g.target) * 100);
+      }
+
+      let status = 'Stable';
+      if (projectedProgress > currentProgress) status = 'Closer to Goal';
+      else if (projectedProgress < currentProgress) status = 'Moving Away';
+
+      return {
+        id: g.id,
+        title: g.title,
+        type: g.type,
+        currentProgress: Math.round(currentProgress),
+        projectedProgress: Math.round(projectedProgress),
+        status
+      };
+    }).filter(g => ['FOCUS', 'SLEEP', 'SCREEN_TIME', 'EXERCISE'].includes(g.type));
+
+    simulationResult.goalAlignment = goalAlignment;
 
     res.status(200).json({ success: true, data: simulationResult });
   } catch (error) {

@@ -1,13 +1,16 @@
 "use client";
 
-import { LayoutDashboard, FolderKanban, Activity, Bell, Settings, User, HelpCircle, Info, Menu, X, BrainCircuit } from "lucide-react";
+import { LayoutDashboard, FolderKanban, Activity, Bell, Settings, User, HelpCircle, Info, Menu, X, BrainCircuit, Target, List, PlayCircle } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 
 const navItems = [
   { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+  { name: "Goals", icon: Target, href: "/goals" },
   { name: "Simulator", icon: BrainCircuit, href: "/simulator" },
+  { name: "Weekly Reviews", icon: List, href: "/reviews" },
+  { name: "Reality Replay", icon: PlayCircle, href: "/replay" },
   { name: "Projects", icon: FolderKanban, href: "/projects" },
   { name: "Analytics", icon: Activity, href: "/analytics" },
   { name: "Notifications", icon: Bell, href: "/notifications" },

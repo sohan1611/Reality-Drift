@@ -26,6 +26,8 @@ model User {
   notifications Notification[]
   issueReports IssueReport[]
   featureRequests FeatureRequest[]
+  goals         Goal[]
+  conversations Conversation[]
 }
 
 model DailyLog {
@@ -129,4 +131,45 @@ model FeatureRequest {
   internalNotes    String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+}
+
+enum GoalType {
+  FOCUS
+  SLEEP
+  MOOD
+  SCREEN_TIME
+  EXERCISE
+  CUSTOM
+}
+
+model Goal {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      GoalType
+  target    Float
+  operator  String   // '>=', '<=', '=='
+  status    String   @default("ACTIVE") // 'ACTIVE', 'PAUSED'
+  title     String?  // For custom goals
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Conversation {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  context   Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  messages  Message[]
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String       // 'user', 'assistant'
+  content        String
+  createdAt      DateTime     @default(now())
 }

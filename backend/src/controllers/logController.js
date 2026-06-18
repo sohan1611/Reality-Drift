@@ -147,12 +147,16 @@ exports.getAnalytics = async (req, res) => {
 
     // --- Analytics Engine Integrations ---
     const currentScore = statsEngine.calculateRealityScore(logs);
+    const lifeAreas = statsEngine.calculateLifeAreas(logs);
     const scoreWeekAgo = statsEngine.calculateHistoricalScore(logs, 7);
     const scoreMonthAgo = statsEngine.calculateHistoricalScore(logs, 30);
     
     const momentum = statsEngine.calculateMomentum(logs);
     const drifts = statsEngine.detectDrift(logs);
     const correlations = statsEngine.calculateCorrelations(logs);
+    
+    const goals = await prisma.goal.findMany({ where: { userId: req.user.userId, status: 'ACTIVE' } });
+    const goalRisks = statsEngine.checkGoalRisks(goals, logs);
     
     const heatmap = logs.map(l => ({
       date: new Date(l.date).toISOString().split('T')[0],
@@ -236,10 +240,30 @@ exports.getAnalytics = async (req, res) => {
           weekChange: currentScore - scoreWeekAgo,
           monthChange: currentScore - scoreMonthAgo
         },
+        lifeAreas,
         momentum,
         drifts,
         correlations,
-        heatmap
+        heatmap,
+        goalRisks,
+        goals: goals.map(g => {
+          let currentValue = 0;
+          if (logs.length > 0) {
+            const recentLogs = logs.slice(-7);
+            if (g.type === 'FOCUS') currentValue = recentLogs.reduce((a, l) => a + l.studyHours + l.codingHours, 0) / recentLogs.length;
+            if (g.type === 'SLEEP') currentValue = recentLogs.reduce((a, l) => a + l.sleepHours, 0) / recentLogs.length;
+            if (g.type === 'MOOD') currentValue = recentLogs.reduce((a, l) => a + l.mood, 0) / recentLogs.length;
+            if (g.type === 'SCREEN_TIME') currentValue = recentLogs.reduce((a, l) => a + l.screenTime, 0) / recentLogs.length;
+            if (g.type === 'EXERCISE') currentValue = recentLogs.reduce((a, l) => a + l.exerciseSessions, 0); 
+          }
+          let progress = 0;
+          if (g.operator === '>=') progress = Math.min((currentValue / g.target) * 100, 100);
+          else if (g.operator === '<=') {
+            if (currentValue <= g.target) progress = 100;
+            else progress = Math.max(0, 100 - ((currentValue - g.target) / g.target) * 100);
+          }
+          return { ...g, progress: Math.round(progress) };
+        })
       }
     });
   } catch (error) {

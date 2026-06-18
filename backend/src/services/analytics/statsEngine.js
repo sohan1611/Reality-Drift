@@ -313,11 +313,188 @@ function evaluateForecasts(simulations, allLogs) {
   };
 }
 
+function calculateLifeAreas(logs) {
+  if (!logs || logs.length === 0) {
+    return {
+      productivity: { score: 0, contributors: { focus: 0, coding: 0, consistency: 0 } },
+      health: { score: 0, contributors: { sleep: 0, exercise: 0, screenTime: 0 } },
+      mentalState: { score: 0, contributors: { mood: 0, momentum: 'Stable', recovery: 0 } },
+      overall: 0
+    };
+  }
+
+  const sorted = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const todayLog = sorted[0];
+
+  // 1. Productivity
+  const focus = todayLog.studyHours || 0;
+  const coding = todayLog.codingHours || 0;
+  const focusHours = focus + coding;
+  const prodFocusScore = Math.min((focusHours / 8) * 60, 60);
+  
+  let streak = 0;
+  let loggedLast14 = 0;
+  const now = new Date();
+  for (let i = 0; i < 14; i++) {
+    const targetDate = new Date(now);
+    targetDate.setDate(now.getDate() - i);
+    if (sorted.some(l => getDayDiff(l.date, targetDate) === 0)) {
+      loggedLast14++;
+      if (i === streak) streak++;
+    }
+  }
+  const consistencyRaw = Math.min((streak / 7) * 20, 20) + (loggedLast14 / 14) * 20;
+  const productivityScore = Math.round(prodFocusScore + consistencyRaw);
+
+  // 2. Health
+  const sleep = todayLog.sleepHours || 0;
+  let sleepHealthScore = 0;
+  if (sleep >= 7 && sleep <= 9) sleepHealthScore = 40;
+  else if (sleep >= 6 && sleep < 7) sleepHealthScore = 25;
+  else if (sleep > 9 && sleep <= 10) sleepHealthScore = 25;
+  else if (sleep > 0) sleepHealthScore = 10;
+
+  const exerciseSessions = todayLog.exerciseSessions || 0;
+  const exerciseScore = Math.min((exerciseSessions / 1) * 30, 30); // 1 session per day gives max points
+
+  const screenTime = todayLog.screenTime || 0;
+  const screenScore = Math.max(0, Math.min((1 - screenTime / 8) * 30, 30)); 
+  
+  const healthScore = Math.round(sleepHealthScore + exerciseScore + screenScore);
+
+  // 3. Mental State
+  const mood = todayLog.mood || 5;
+  const moodScore = (mood / 10) * 50;
+  
+  const momentumObj = calculateMomentum(logs);
+  let momentumScore = 15;
+  if (momentumObj.status.includes('Rising')) momentumScore = 30;
+  else if (momentumObj.status.includes('Falling')) momentumScore = 0;
+
+  let recoveryScore = 0;
+  if (sleep >= 7 && sleep <= 9) recoveryScore = 20;
+  else if (sleep >= 6 && sleep < 7) recoveryScore = 10;
+  
+  const mentalStateScore = Math.round(moodScore + momentumScore + recoveryScore);
+
+  return {
+    productivity: {
+      score: productivityScore,
+      contributors: {
+        focus: Math.round(prodFocusScore),
+        coding: Math.round(coding),
+        consistency: Math.round(consistencyRaw)
+      }
+    },
+    health: {
+      score: healthScore,
+      contributors: {
+        sleep: Math.round(sleepHealthScore),
+        exercise: Math.round(exerciseScore),
+        screenTime: Math.round(screenScore)
+      }
+    },
+    mentalState: {
+      score: mentalStateScore,
+      contributors: {
+        mood: Math.round(moodScore),
+        momentum: momentumScore,
+        recovery: Math.round(recoveryScore)
+      }
+    },
+    overall: calculateRealityScore(logs)
+  };
+}
+
+function checkGoalRisks(goals, logs) {
+  if (!logs || logs.length < 3 || !goals || goals.length === 0) return [];
+
+  const alerts = [];
+  const recentLogs = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 7);
+
+  goals.forEach(goal => {
+    if (goal.status !== 'ACTIVE') return;
+
+    let recentAvg = 0;
+    if (goal.type === 'FOCUS') recentAvg = recentLogs.reduce((a, l) => a + l.studyHours + l.codingHours, 0) / recentLogs.length;
+    else if (goal.type === 'SLEEP') recentAvg = recentLogs.reduce((a, l) => a + l.sleepHours, 0) / recentLogs.length;
+    else if (goal.type === 'MOOD') recentAvg = recentLogs.reduce((a, l) => a + l.mood, 0) / recentLogs.length;
+    else if (goal.type === 'SCREEN_TIME') recentAvg = recentLogs.reduce((a, l) => a + l.screenTime, 0) / recentLogs.length;
+    else if (goal.type === 'EXERCISE') recentAvg = recentLogs.reduce((a, l) => a + l.exerciseSessions, 0); // Sum
+
+    let atRisk = false;
+    let direction = '';
+
+    if (goal.operator === '>=') {
+      // Risk if the recent avg is significantly lower than target
+      if (recentAvg < goal.target * 0.8) {
+        atRisk = true;
+        direction = 'falling behind';
+      }
+    } else if (goal.operator === '<=') {
+      // Risk if recent avg is significantly higher than target
+      if (recentAvg > goal.target * 1.2) {
+        atRisk = true;
+        direction = 'exceeding limit';
+      }
+    }
+
+    if (atRisk) {
+      alerts.push({
+        goalId: goal.id,
+        type: goal.type,
+        message: `Your recent trend suggests your ${goal.type.toLowerCase().replace('_', ' ')} goal is at risk (${direction}).`
+      });
+    }
+  });
+
+  return alerts;
+}
+
+const generateReplayStats = (logs) => {
+  if (!logs || logs.length === 0) return null;
+
+  const totalLogs = logs.length;
+  let totalStudy = 0;
+  let totalCoding = 0;
+  let totalScreen = 0;
+  let totalSleep = 0;
+  let bestScore = 0;
+  let bestDay = null;
+
+  logs.forEach(log => {
+    totalStudy += log.studyHours || 0;
+    totalCoding += log.codingHours || 0;
+    totalScreen += log.screenTime || 0;
+    totalSleep += log.sleepHours || 0;
+    
+    // Quick score approximation for best day
+    let s = 50 + (log.studyHours || 0) * 3 + (log.codingHours || 0) * 3 - (log.screenTime || 0) * 2;
+    if (s > bestScore) {
+      bestScore = s;
+      bestDay = log.date;
+    }
+  });
+
+  return {
+    totalDaysLogged: totalLogs,
+    totalFocusHours: totalStudy + totalCoding,
+    totalScreenHours: totalScreen,
+    avgSleep: (totalSleep / totalLogs).toFixed(1),
+    bestScore: Math.round(bestScore),
+    bestDay: bestDay,
+    firstLogDate: logs[0].date
+  };
+};
+
 module.exports = {
   calculateRealityScore,
   calculateHistoricalScore,
   calculateMomentum,
   detectDrift,
   calculateCorrelations,
-  evaluateForecasts
+  evaluateForecasts,
+  calculateLifeAreas,
+  checkGoalRisks,
+  generateReplayStats
 };

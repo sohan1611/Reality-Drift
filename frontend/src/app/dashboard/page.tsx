@@ -148,9 +148,64 @@ export default function Dashboard() {
           icon={momentum.status.includes('Rising') ? TrendingUp : momentum.status.includes('Falling') ? TrendingDown : Activity} 
           color={momentum.status.includes('Rising') ? "text-blue-400" : momentum.status.includes('Falling') ? "text-amber-400" : "text-gray-400"} 
         />
-        <StatCard title="Total Entries" value={totalLogs} subtitle="Consistent logs" icon={Users} color="text-indigo-400" />
-        <StatCard title="Daily Focus Avg" value={(avgStudy).toFixed(1) + 'h'} subtitle="Last 30 days" icon={Zap} color="text-violet-400" />
+        <StatCard 
+          title="Avg Focus" 
+          value={`${avgStudy.toFixed(1)}h`} 
+          subtitle="Daily historical avg"
+          icon={Clock} 
+          color="text-white/60" 
+        />
+        <StatCard 
+          title="Total Logs" 
+          value={totalLogs} 
+          subtitle="Days tracked"
+          icon={Users} 
+          color="text-white/60" 
+        />
       </div>
+
+      {/* Goals Progress */}
+      {analyticsData?.goals && analyticsData.goals.length > 0 && (
+        <div>
+          <h3 className="text-white/80 font-medium mb-4 flex items-center gap-2"><Target className="w-4 h-4 text-emerald-400" /> Active Goals</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {analyticsData.goals.map((g: any) => (
+              <div key={g.id} className="bg-white/5 border border-white/5 rounded-xl p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <h4 className="text-white/90 text-sm font-medium capitalize">{g.title || g.type.replace('_', ' ').toLowerCase()}</h4>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${g.progress >= 100 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                    {g.progress}%
+                  </span>
+                </div>
+                <div className="w-full bg-white/10 rounded-full h-1.5 mt-3">
+                  <div className={`h-1.5 rounded-full transition-all ${g.progress >= 100 ? 'bg-emerald-500' : 'bg-blue-500'}`} style={{ width: `${Math.min(g.progress, 100)}%` }}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Life Areas Score */}
+      {analyticsData?.lifeAreas && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white/5 border border-white/5 rounded-xl p-6">
+            <h3 className="text-white/50 text-xs font-medium uppercase tracking-wider mb-4">Productivity</h3>
+            <div className="text-3xl font-bold text-white/90 mb-1">{analyticsData.lifeAreas.productivity.score}</div>
+            <p className="text-white/40 text-sm mt-3">Focus: {analyticsData.lifeAreas.productivity.contributors.focus} • Coding: {analyticsData.lifeAreas.productivity.contributors.coding} • Consistency: {analyticsData.lifeAreas.productivity.contributors.consistency}</p>
+          </div>
+          <div className="bg-white/5 border border-white/5 rounded-xl p-6">
+            <h3 className="text-white/50 text-xs font-medium uppercase tracking-wider mb-4">Health</h3>
+            <div className="text-3xl font-bold text-white/90 mb-1">{analyticsData.lifeAreas.health.score}</div>
+            <p className="text-white/40 text-sm mt-3">Sleep: {analyticsData.lifeAreas.health.contributors.sleep} • Exercise: {analyticsData.lifeAreas.health.contributors.exercise} • Burnout: {analyticsData.lifeAreas.health.contributors.screenTime}</p>
+          </div>
+          <div className="bg-white/5 border border-white/5 rounded-xl p-6">
+            <h3 className="text-white/50 text-xs font-medium uppercase tracking-wider mb-4">Mental State</h3>
+            <div className="text-3xl font-bold text-white/90 mb-1">{analyticsData.lifeAreas.mentalState.score}</div>
+            <p className="text-white/40 text-sm mt-3">Mood: {analyticsData.lifeAreas.mentalState.contributors.mood} • Momentum: {analyticsData.lifeAreas.mentalState.contributors.momentum} • Recovery: {analyticsData.lifeAreas.mentalState.contributors.recovery}</p>
+          </div>
+        </div>
+      )}
 
       {/* 3. Drift Detection Alert Panel */}
       {drifts.length > 0 && (

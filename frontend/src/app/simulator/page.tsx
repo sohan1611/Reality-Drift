@@ -37,6 +37,7 @@ type SimulationResult = {
     appliedLog: string[];
   };
   reasoning?: string;
+  goalAlignment?: any[];
 };
 
 export default function SimulatorPage() {
@@ -274,6 +275,32 @@ export default function SimulatorPage() {
                   </span>
                 </div>
               </div>
+
+              {/* Goal Alignment */}
+              {result.goalAlignment && result.goalAlignment.length > 0 && (
+                <div className="glass-panel p-6 rounded-xl border border-white/[0.04]">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-white/50 mb-4">Goal Alignment</h3>
+                  <div className="space-y-4">
+                    {result.goalAlignment.map((g: any) => (
+                      <div key={g.id} className="flex flex-col gap-2 p-3 bg-white/[0.02] rounded-lg">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-white/90 capitalize">{g.title || g.type.replace('_', ' ').toLowerCase()}</span>
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${g.status === 'Closer to Goal' ? 'bg-emerald-500/20 text-emerald-400' : g.status === 'Moving Away' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                            {g.status}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-white/60">
+                          <span>Current: {g.currentProgress}%</span>
+                          <span>→</span>
+                          <span className={g.projectedProgress > g.currentProgress ? 'text-emerald-400 font-medium' : g.projectedProgress < g.currentProgress ? 'text-red-400 font-medium' : ''}>
+                            Projected: {g.projectedProgress}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Explainability Panel */}
               <div className="glass-panel rounded-xl border border-white/[0.04] overflow-hidden">
