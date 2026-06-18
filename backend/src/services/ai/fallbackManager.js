@@ -1,10 +1,11 @@
 exports.getCoachFallback = (reason) => {
+  console.error("[Coach Fallback Log]:", reason);
   return {
     productivityTrend: "stable",
     burnoutRisk: "medium",
     summary: "AI systems are currently analyzing your data. Please check back later.",
     suggestions: [
-      `System notification: ${reason}`,
+      "System notification: AI Service is temporarily offline.",
       "Ensure you log all activities accurately.",
       "Stay consistent with your daily routines."
     ]
@@ -25,10 +26,11 @@ exports.getCoachEmptyState = () => {
 };
 
 exports.getSimulationFallback = (reason) => {
+  console.error("[Simulation Fallback Log]:", reason);
   return {
-    bestCase: { text: `Unable to simulate at this time. (${reason})`, projectedFocus: 0, projectedMood: 0, projectedSleep: 0 },
-    worstCase: { text: `Unable to simulate at this time. (${reason})`, projectedFocus: 0, projectedMood: 0, projectedSleep: 0 },
-    currentPath: { text: `The AI simulation engine is temporarily offline. Try again later.`, projectedFocus: 0, projectedMood: 0, projectedSleep: 0 }
+    bestCase: { text: "Unable to simulate at this time. Service temporarily offline.", projectedFocus: 0, projectedMood: 0, projectedSleep: 0 },
+    worstCase: { text: "Unable to simulate at this time. Service temporarily offline.", projectedFocus: 0, projectedMood: 0, projectedSleep: 0 },
+    currentPath: { text: "The AI simulation engine is temporarily offline. Try again later.", projectedFocus: 0, projectedMood: 0, projectedSleep: 0 }
   };
 };
 
