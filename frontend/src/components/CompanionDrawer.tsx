@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { MessageSquare, X, Send, Sparkles, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
+import { apiFetch } from "@/services/api";
 
 export default function CompanionDrawer() {
   const [isOpen, setIsOpen] = useState(false);
@@ -25,12 +26,8 @@ export default function CompanionDrawer() {
 
   const loadHistory = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/history`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (data.success && data.data) {
+      const data = await apiFetch("/chat/history");
+      if (data && data.success && data.data) {
         setConversationId(data.data.id);
         setHistory(data.data.messages || []);
       }
@@ -49,16 +46,10 @@ export default function CompanionDrawer() {
     setIsLoading(true);
 
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat`, {
+      const data = await apiFetch("/chat", {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
-        },
         body: JSON.stringify({ message: userMessage.content, conversationId })
       });
-      const data = await res.json();
       
       if (data.success) {
         setConversationId(data.data.conversationId);
