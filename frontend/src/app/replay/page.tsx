@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { PlayCircle, Target, Award, Brain, Clock, Activity, ChevronRight, ChevronLeft } from "lucide-react";
 import toast from "react-hot-toast";
+import { getReplay } from "@/services/replay";
 
 export default function ReplayPage() {
   const [replay, setReplay] = useState<any>(null);
@@ -11,11 +12,7 @@ export default function ReplayPage() {
   useEffect(() => {
     const fetchReplay = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/replay`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
+        const data = await getReplay();
         if (data.success && data.data) {
           setReplay(data.data);
         }

@@ -27,7 +27,7 @@ router.delete('/user', auth, userController.deleteAccount);
 router.get('/logs', auth, logController.getLogs);
 router.post('/logs', auth, logController.createLog);
 router.patch('/logs/:id', auth, logController.updateLog);
-router.delete('/log/:id', auth, logController.deleteLog);
+router.delete('/logs/:id', auth, logController.deleteLog);
 
 // Goals (Protected)
 router.get('/goals', auth, goalController.getGoals);

@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Target, CheckCircle2, Clock, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
+import { getGoals, createGoal, deleteGoal as deleteGoalRequest } from "@/services/goals";
 
 export default function GoalsPage() {
   const [goals, setGoals] = useState<any[]>([]);
@@ -12,11 +13,7 @@ export default function GoalsPage() {
   const fetchGoals = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/goals`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
+      const data = await getGoals();
       if (data.success) setGoals(data.data);
     } catch (e) {
       toast.error("Failed to load goals.");
@@ -31,13 +28,7 @@ export default function GoalsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/goals`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(formData)
-      });
-      const data = await res.json();
+      const data = await createGoal(formData);
       if (data.success) {
         toast.success("Goal created!");
         setIsFormOpen(false);
@@ -52,14 +43,12 @@ export default function GoalsPage() {
 
   const deleteGoal = async (id: string) => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/goals/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
+      const data = await deleteGoalRequest(id);
+      if (data.success) {
         toast.success("Goal deleted.");
         fetchGoals();
+      } else {
+        toast.error("Failed to delete goal.");
       }
     } catch (e) {
       toast.error("Failed to delete goal.");

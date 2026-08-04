@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react";
 import { List, Calendar, AlertTriangle, TrendingUp, RefreshCcw } from "lucide-react";
 import toast from "react-hot-toast";
+import { getReviews } from "@/services/reviews";
+import { getWeeklyReport } from "@/services/ai";
 
 export default function ReviewsPage() {
   const [reviews, setReviews] = useState<any[]>([]);
@@ -10,11 +12,7 @@ export default function ReviewsPage() {
   const fetchReviews = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reviews`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
+      const data = await getReviews();
       if (data.success) setReviews(data.data);
     } catch (e) {
       toast.error("Failed to load reviews.");
@@ -25,12 +23,7 @@ export default function ReviewsPage() {
   const generateReport = async () => {
     toast.loading("Generating latest report...", { id: 'report' });
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/report`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
+      const data = await getWeeklyReport();
       if (data.success) {
         toast.success("Report generated!", { id: 'report' });
         fetchReviews();
